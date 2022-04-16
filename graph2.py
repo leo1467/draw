@@ -8,15 +8,14 @@ import os
 import gc
 import matplotlib.ticker as mtick
 
-owd = os.getcwd()
-oowd = os.getcwd()
+root = os.getcwd()
 file_extension = '.csv'
 splitTargetFolder = ['/testBestHold']
 
 def split_testIRR_draw(fileName, split, draw):
+    print(fileName)
     fileNameList = fileName.split('.')[0].split('_')
     techName = '_'.join(fileNameList[fileNameList.index('sorted') + 1: ])
-    os.chdir('result')
     dirName = 'split_' + fileName.split('.')[0]
     if not os.path.isdir(dirName):
             os.mkdir(dirName)
@@ -25,7 +24,7 @@ def split_testIRR_draw(fileName, split, draw):
         if True in oriIRRFile.columns.str.contains('^Unnamed'):
             oriIRRFile = oriIRRFile.loc[: , ~oriIRRFile.columns.str.contains('^Unnamed')]
             oriIRRFile.to_csv(fileName, index = None)
-        oriIRRFile = pd.read_csv(fileName, header = None)
+        oriIRRFile = oriIRRFile.T.reset_index().T.reset_index(drop = True)
         os.chdir(dirName)
         index = []
         for row, content in enumerate(oriIRRFile[0]):
@@ -33,7 +32,9 @@ def split_testIRR_draw(fileName, split, draw):
                 index.append(row)
         index.append(len(oriIRRFile))
         for cellIndex in range(len(index) - 1):
-            oriIRRFile[index[cellIndex]: index[cellIndex + 1]].to_csv(oriIRRFile[0][index[cellIndex]].replace('=', '') + '_IRR.csv', header = None, index = None)
+            companyName = oriIRRFile.at[index[cellIndex], oriIRRFile.columns[0]].replace('=', '')
+            oriIRRFile.at[index[cellIndex], oriIRRFile.columns[0]] = 'window'
+            oriIRRFile[index[cellIndex]: index[cellIndex + 1]].to_csv(companyName + '_IRR.csv', header = None, index = None)
     else:
         os.chdir(dirName)
     allIRRFile = [i for i in glob.glob(f"*{file_extension}")]
@@ -55,40 +56,50 @@ def split_testIRR_draw(fileName, split, draw):
         print(file)
         if file.split('.')[1] == 'csv':
             #df前處理
-            df = pd.read_csv(file)
-            company = df.columns[0].replace('=', '')
-            df.rename(columns = {df.columns[0]: 'window'}, inplace = True)
-            for col in range(1, len(df.columns)):
-                for row in range(len(df)):
-                    df.at[row, df.columns[col]] *= 100
+            company = file.split('_')[0]
+            df = pd.read_csv(file, index_col = 0)
+            # df.rename(columns = {df.columns[0]: 'window'}, inplace = True)
+            for colIndex in df.columns:
+                for rowIndex in df.index:
+                    df.at[rowIndex, colIndex] *= 100
             # table資料
-            tableColumns = ['highest IRR diff b/t algo and trad', 'algo win rate', 'algo avg IRR', 'trad avg IRR', 'highest IRR diff b/t algo and B&H']
+            tableColumns = ['highest IRR diff\n algo/trad', 'algo win rate', 'algo avg IRR', 'trad avg IRR', 'highest IRR diff\n algo/B&H', 'highest IRR diff\n trad/B&H']
             cellData = list()
             IRRData = dict()
             for colIndex, col in enumerate(df.columns):
-                if colIndex != 0:
-                    IRRData.update({col: np.array([x for i, x in enumerate(df[col]) if df.window[i] != 'B&H'])})
-            cellData.append(max(IRRData[df.columns[1]]) - max(IRRData[df.columns[2]]))
-            cellData.append(len([i for i, j in zip(IRRData[df.columns[1]], IRRData[df.columns[2]]) if i > j]) / len(IRRData[df.columns[1]]) * 100)
+                IRRData.update({col: np.array([x for i, x in enumerate(df[col]) if df.index[i] != 'B&H'])})
+            cellData.append(max(IRRData[df.columns[0]]) - max(IRRData[df.columns[1]]))
+            cellData.append(len([i for i, j in zip(IRRData[df.columns[0]], IRRData[df.columns[1]]) if i > j]) / len(IRRData[df.columns[0]]) * 100)
+            cellData.append(np.average(IRRData[df.columns[0]]))
             cellData.append(np.average(IRRData[df.columns[1]]))
-            cellData.append(np.average(IRRData[df.columns[2]]))
-            cellData.append(max(IRRData[df.columns[1]]))
-            if len(df.columns) > 3:
-                tableColumns.append('highest IRR diff of algo of tech')
+            cellData.append(max(IRRData[df.columns[0]]) - df.at['B&H', df.columns[0]])
+            cellData.append(max(IRRData[df.columns[1]]) - df.at['B&H', df.columns[0]])
+            if len(df.columns) > 2:
+                secndTechName = df.columns[2].split(" ")[0]
+                tableColumns.append(f'highest IRR diff of algo\n{techName}/{secndTechName}')
+                cellData.append(max(IRRData[df.columns[0]]) - max(IRRData[df.columns[2]]))
+                tableColumns.append(f'highest IRR diff of trad\n{techName}/{secndTechName}')
                 cellData.append(max(IRRData[df.columns[1]]) - max(IRRData[df.columns[3]]))
-                tableColumns.append('highest IRR diff of trad of tech')
-                cellData.append(max(IRRData[df.columns[2]]) - max(IRRData[df.columns[4]]))
-                tableColumns.append('algo win rate of tech')
-                cellData.append(len([i for i, j in zip(IRRData[df.columns[1]], IRRData[df.columns[3]]) if i > j]) / len(IRRData[df.columns[1]]) * 100)
-                tableColumns.append('trad win rate of tech')
-                cellData.append(len([i for i, j in zip(IRRData[df.columns[2]], IRRData[df.columns[4]]) if i > j]) / len(IRRData[df.columns[1]]) * 100)
-            if len(df.columns) > 5:
+                tableColumns.append(f'algo win rate\n{techName}/{secndTechName}')
+                cellData.append(len([i for i, j in zip(IRRData[df.columns[0]], IRRData[df.columns[2]]) if i > j]) / len(IRRData[df.columns[0]]) * 100)
+                tableColumns.append(f'trad win rate\n{techName}/{secndTechName}')
+                cellData.append(len([i for i, j in zip(IRRData[df.columns[1]], IRRData[df.columns[3]]) if i > j]) / len(IRRData[df.columns[0]]) * 100)
+            if len(df.columns) > 4:
+                thirdTechName = df.columns[4].split(" ")[0]
+                tableColumns.append(f'highest IRR diff of algo\n{techName}/{thirdTechName}')
+                cellData.append(max(IRRData[df.columns[0]]) - max(IRRData[df.columns[4]]))
+                tableColumns.append(f'highest IRR diff of trad\n{techName}/{thirdTechName}')
+                cellData.append(max(IRRData[df.columns[1]]) - max(IRRData[df.columns[5]]))
+                tableColumns.append(f'algo win rate\n{techName}/{thirdTechName}')
+                cellData.append(len([i for i, j in zip(IRRData[df.columns[0]], IRRData[df.columns[4]]) if i > j]) / len(IRRData[df.columns[0]]) * 100)
+                tableColumns.append(f'trad win rate\n{techName}/{thirdTechName}')
+                cellData.append(len([i for i, j in zip(IRRData[df.columns[1]], IRRData[df.columns[5]]) if i > j]) / len(IRRData[df.columns[0]]) * 100)
                 windowChoose = list()
-                windowChoose.append(df[df.columns[7]] / df['window num'] * 100)
-                windowChoose.append(df[df.columns[9]] / df['window num'] * 100)
+                windowChoose.append(df[df.columns[6]] / df['window num'] * 100)
+                windowChoose.append(df[df.columns[8]] / df['window num'] * 100)
                 for i in range(len(windowChoose)):
                     windowChoose[i] = ['%.2f' % elem + '%' for elem in windowChoose[i]]
-                windowChooseDf = pd.DataFrame(windowChoose, columns = [df.window], index = [df.columns[7], df.columns[9]])
+                windowChooseDf = pd.DataFrame(windowChoose, columns = [df.index], index = [df.columns[6], df.columns[8]])
                 df = df.drop(columns = [col for col in df.columns[-5: ]])
             cellData = ['%.2f' % elem for elem in cellData]
             cellData = np.array([[elem + '%'] for elem in cellData])
@@ -97,31 +108,41 @@ def split_testIRR_draw(fileName, split, draw):
             tables.append(tableDf)
             if draw:
                 #設定每個bar的顏色及bar的最終寬度
-                colSet = df.columns[1: ]
-                colorDict = dict(zip(colSet, barColorSet))
-                if len(df.columns) <= 3:
+                colorDict = dict(zip(df.columns, barColorSet))
+                if len(df.columns) < 3:
                     totalBarWidth = 0.5
-                #將過長的df切一半
-                dfCuttedIndex = [0, floor(len(df) / 2), len(df)]
+                #將過長的df切開
+                if len(df.columns) < 5:
+                    figCnt = 2
+                else:
+                    figCnt = 3
+                dfCuttedIndex = list()
+                for i in range(figCnt):
+                    dfCuttedIndex.append(floor(len(df) / figCnt) * i)
+                dfCuttedIndex.append(len(df))
                 #開始畫圖
-                fig, axs = plt.subplots(2, sharey = True)
+                fig, axs = plt.subplots(figCnt, sharey = True)
+                axIndexForLegned = 0
                 for splitIndex in range(len(dfCuttedIndex) - 1):
-                    subDf = df.iloc[dfCuttedIndex[splitIndex]: dfCuttedIndex[splitIndex + 1]].reset_index(drop = True)
+                    subDf = df.iloc[dfCuttedIndex[splitIndex]: dfCuttedIndex[splitIndex + 1]]
                     plot = subDf.plot.bar(ax = axs[splitIndex], width = totalBarWidth, rot = 0, color = colorDict, edgecolor = 'black', linewidth = 0.2, legend = None)
                     #找出B&H位置，將B&H的bar變成紅色
-                    BHIndex = subDf.index[subDf.window == 'B&H'].tolist()
-                    for barIndex, barContainer in enumerate(plot.containers):
-                        if len(BHIndex):
+                    BHIndex = [i for i, x in enumerate(subDf.index) if x == 'B&H']
+                    if not len(BHIndex):
+                        axIndexForLegned = splitIndex
+                    if len(BHIndex):
+                        for barIndex, barContainer in enumerate(plot.containers):
                             if barIndex == 0:
                                 singleBarWidth = barContainer[BHIndex[0]].get_width()
-                                barX = ((barContainer[BHIndex[0]].get_x() + (barContainer[BHIndex[0]].get_x() + (len(colSet) * singleBarWidth))) - singleBarWidth) / 2
+                                barX = ((barContainer[BHIndex[0]].get_x() + (barContainer[BHIndex[0]].get_x() + (len(subDf.columns) * singleBarWidth))) - singleBarWidth) / 2
                             barContainer[BHIndex[0]].set_color('r')
                             barContainer[BHIndex[0]].set_x(barX)
                             barContainer[BHIndex[0]].set_edgecolor('black')
                     #設定其他屬性
                     axs[splitIndex].grid(axis = 'y')
                     axs[splitIndex].yaxis.set_major_formatter(mtick.PercentFormatter())  #把座標變成%
-                    axs[splitIndex].set_xticklabels(subDf.window, rotation = 45)
+                    axs[splitIndex].set_xticklabels(subDf.index, rotation = 45)
+                    axs[splitIndex].set(xlabel = "", ylabel = "")
                     axs[splitIndex].tick_params(axis = 'both', labelsize = allFontSize)  #設定xlabel ylabel字形大小
                     #設定lable顏色
                     for cellIndex in axs[splitIndex].get_xticklabels():
@@ -132,38 +153,35 @@ def split_testIRR_draw(fileName, split, draw):
                                 break
                     #設定top table跟bottom table
                     if splitIndex == 0:
-                        topTable = axs[splitIndex].table(colLabels = tableDf.columns,
-                                                        cellText = tableDf.values,
-                                                        loc = 'top',
-                                                        cellLoc = 'center',
-                                                        colColours =['silver'] * len(tableDf.columns),
-                                                        bbox=[0, 1.1, 1, 0.2])
+                        if len(subDf.columns) < 5:
+                            myBox = [0, 1.05, 1, 0.22]
+                        else:
+                            myBox = [0, 1.05, 1, 0.4]
+                        celBGC = [['gainsboro'] * 6, ['silver'] * 4, ['darkgray'] * 4]
+                        colClrs = list()
+                        for i in range(figCnt):
+                            for clr in celBGC[i]:
+                                colClrs.append(clr)
+                        topTable = axs[splitIndex].table(colLabels = tableDf.columns, cellText = tableDf.values, loc = 'top', cellLoc = 'center', colColours = colClrs, bbox = myBox)
                         # for colIndex in range(len(tableDf.columns)):  #設定cell text顏色
                         #     topTable[0, colIndex].get_text().set_color('white')
                         topTable.auto_set_column_width(col = list(range(len(tableDf.columns))))
                         topTable.auto_set_font_size(False)
                         topTable.set_fontsize('medium')  # Valid font size are xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
-                    if len(df.columns) > 5:
+                    if len(df.columns) > 4:
                         continue
-                        if splitIndex == 0:
-                            chooseDf = windowChooseDf[windowChooseDf.columns[0: floor(len(windowChooseDf.columns) / 2)]]
-                        elif splitIndex == 1:
-                            chooseDf = windowChooseDf[windowChooseDf.columns[floor(len(windowChooseDf.columns) / 2): len(windowChooseDf.columns)]]
-                        table = axs[splitIndex].table(cellText = chooseDf.values, 
-                                    loc = 'top', 
-                                    cellLoc = 'center', 
-                                    rowLabels = [chooseDf.index[0], chooseDf.index[1]],
-                                    bbox = [0.0, -0.6, 1, 0.28])
-                # handles, labels = axs[int(not bool(len(BHIndex)))].get_legend_handles_labels()
-                # fig.legend(handles, labels, loc = 'upper center', bbox_to_anchor = (0.5, 0), fancybox = True, shadow = False, ncol = 6, fontsize = allFontSize)
-                plt.legend(loc = 'upper center', bbox_to_anchor = (0.5, -0.25), fancybox = True, shadow = False, ncol = 6, fontsize = allFontSize)
+                        chooseDf = windowChooseDf[windowChooseDf.columns[dfCuttedIndex[splitIndex]: dfCuttedIndex[splitIndex + 1]]]
+                        table = axs[splitIndex].table(cellText = chooseDf.values, loc = 'bottom', cellLoc = 'center', rowLabels = [chooseDf.index[0], chooseDf.index[1]], bbox = [0, 0, 1, 0.2])
+                handles, labels = axs[axIndexForLegned].get_legend_handles_labels()
+                fig.legend(handles, labels, loc = 'upper center', bbox_to_anchor = (0.5, 0), fancybox = True, shadow = False, ncol = len(df.columns), fontsize = allFontSize)
+                # plt.legend(loc = 'upper center', bbox_to_anchor = (0.5, -0.3), fancybox = True, shadow = False, ncol = len(df.columns), fontsize = allFontSize)
                 fig.tight_layout()
                 fig.suptitle(company + '_' + techName + '_IRR_rank', y = 1.02, fontsize = allFontSize + 5)
                 plt.savefig(company + '_all_IRR'  + '.png', dpi = 300, bbox_inches = 'tight')
                 plt.cla()
                 plt.close(fig)
             # exit(0)
-    os.chdir(owd + '/result/')
+    os.chdir(root)
     for dfIndex, eachDf in enumerate(tables):
         if dfIndex == 0:
             eachDf.to_csv(fileName.split('.')[0] + '_tables.csv')
@@ -172,162 +190,162 @@ def split_testIRR_draw(fileName, split, draw):
 
 if __name__ == '__main__':
     # draw_hold()
-    split_testIRR_draw('test_IRR_IRR_sorted_RSI' + '.csv', True, True)
+    split_testIRR_draw('test_IRR_IRR_sorted_SMA_RSI_2' + '.csv', 0, True)
 
-def split_hold_period():
-    for targetFolder in splitTargetFolder:
-        for comName in all_company:
-            if comName != '.DS_Store':
-                os.chdir(comName+targetFolder)
-                all_filename = [i for i in glob.glob(f"*{file_extension}")]
-                for file in all_filename:
-                    if (targetFolder == '/testBestHold' and len(file.split('_')) == 2) or (targetFolder == '/specify' and file.split('_')[0] == 'hold' and len(file.split('_')) == 6):
-                        print('spliting ' + file)
-                        year = [str(i) for i in range(2013, 2021)]
-                        yIndex = []
-                        yIN = -1
-                        yIndex.append(int(1))
-                        # with open(file, 'rt') as f:
-                        #     reader = csv.reader(f, delimiter=',')
-                        #     for y in year:
-                        #         print(y)
-                        #         for row in reader:  # 預想是每break一次都會從第一個row開始，但是好像會接續從break時的row接續下去？？不知道為什麼
-                        #             print(row)
-                        #             yIN += 1
-                        #             if y == row[0].split('-')[0]:
-                        #                 yIndex.append(int(yIN))
-                        #                 yIndex.append(int(yIN))
-                        #                 break
-                        csvfile = open(''.join(file), 'r').readlines()
-                        for y in year:
-                            for row in range(len(csvfile)):
-                                yIN += 1
-                                if y == csvfile[yIN].split('-')[0]:
-                                    yIndex.append(int(yIN))
-                                    yIndex.append(int(yIN))
-                                    break
-                        yIndex.append(len(csvfile))
-                        for i in range(len(yIndex)):
-                            if i % 2 == 0:
-                                if targetFolder == '/testBestHold':
-                                    f = open(
-                                        file.split('.')[0] + '_' + str(csvfile[yIndex[i]]).split('-')[0] + '_hold.csv', 'w+')
-                                elif targetFolder == '/specify':
-                                    f = open(
-                                        file.split('.')[0] + '_' + str(csvfile[yIndex[i]]).split('-')[0] + '.csv', 'w+')
-                                f.write('Date,Price,Hold\n')
-                                f.writelines(csvfile[yIndex[i]:yIndex[i+1]])
-                                f.close()
-            os.chdir(oowd)
+# def split_hold_period():
+#     for targetFolder in splitTargetFolder:
+#         for comName in all_company:
+#             if comName != '.DS_Store':
+#                 os.chdir(comName+targetFolder)
+#                 all_filename = [i for i in glob.glob(f"*{file_extension}")]
+#                 for file in all_filename:
+#                     if (targetFolder == '/testBestHold' and len(file.split('_')) == 2) or (targetFolder == '/specify' and file.split('_')[0] == 'hold' and len(file.split('_')) == 6):
+#                         print('spliting ' + file)
+#                         year = [str(i) for i in range(2013, 2021)]
+#                         yIndex = []
+#                         yIN = -1
+#                         yIndex.append(int(1))
+#                         # with open(file, 'rt') as f:
+#                         #     reader = csv.reader(f, delimiter=',')
+#                         #     for y in year:
+#                         #         print(y)
+#                         #         for row in reader:  # 預想是每break一次都會從第一個row開始，但是好像會接續從break時的row接續下去？？不知道為什麼
+#                         #             print(row)
+#                         #             yIN += 1
+#                         #             if y == row[0].split('-')[0]:
+#                         #                 yIndex.append(int(yIN))
+#                         #                 yIndex.append(int(yIN))
+#                         #                 break
+#                         csvfile = open(''.join(file), 'r').readlines()
+#                         for y in year:
+#                             for row in range(len(csvfile)):
+#                                 yIN += 1
+#                                 if y == csvfile[yIN].split('-')[0]:
+#                                     yIndex.append(int(yIN))
+#                                     yIndex.append(int(yIN))
+#                                     break
+#                         yIndex.append(len(csvfile))
+#                         for i in range(len(yIndex)):
+#                             if i % 2 == 0:
+#                                 if targetFolder == '/testBestHold':
+#                                     f = open(
+#                                         file.split('.')[0] + '_' + str(csvfile[yIndex[i]]).split('-')[0] + '_hold.csv', 'w+')
+#                                 elif targetFolder == '/specify':
+#                                     f = open(
+#                                         file.split('.')[0] + '_' + str(csvfile[yIndex[i]]).split('-')[0] + '.csv', 'w+')
+#                                 f.write('Date,Price,Hold\n')
+#                                 f.writelines(csvfile[yIndex[i]:yIndex[i+1]])
+#                                 f.close()
+#             os.chdir(oowd)
 
 
-def draw_hold_period():
-    fig = plt.figure(figsize=[16, 4.5], dpi=300)
-    os.chdir(oowd)
-    now = 0
-    month = ['01', '02', '03', '04', '05', '06',
-             '07', '08', '09', '10', '11', '12']
-    year = [str(i) for i in range(2012, 2021)]
-    for targetFolder in splitTargetFolder:
-        for comName in all_company:
-            if now >= 0 and comName != '.DS_Store':
-                print(comName)
-                os.chdir(comName+targetFolder)
-                NewAll_filename = [i for i in glob.glob(f"*{file_extension}")]
-                print(NewAll_filename)
-                for files in NewAll_filename:
-                    if files.split('_')[0] != 'RoR':
-                        df = pd.read_csv(files)
-                        xIndex = []
-                        dfIndex = -1
-                        if len(files.split('_')) == 4 or len(files.split('_')) == 7:
-                            for m in month:
-                                for row in df.Date:
-                                    dfIndex += 1
-                                    if m == df.Date[dfIndex].split('-')[1]:
-                                        xIndex.append(int(dfIndex))
-                                        break
-                        else:
-                            for y in year:
-                                for row in df.Date:
-                                    dfIndex += 1
-                                    if y == df.Date[dfIndex].split('-')[0]:
-                                        xIndex.append(int(dfIndex))
-                                        break
-                        plt.title(files.replace('.csv', ''))
-                        plt.plot(df.Date, df.Price, label='Price')
-                        plt.plot(df.Date, df.Hold, label='Hold')
-                        if len(files.split('_')) != 2 and files.split('_') != 6:
-                            plt.scatter(df.Date, df.Hold,
-                                        c='darkorange', s=5, zorder=10)
-                        plt.xlabel('Date', fontsize=12, c='black')
-                        plt.ylabel('Price', fontsize=12, c='black')
+# def draw_hold_period():
+#     fig = plt.figure(figsize=[16, 4.5], dpi=300)
+#     os.chdir(oowd)
+#     now = 0
+#     month = ['01', '02', '03', '04', '05', '06',
+#              '07', '08', '09', '10', '11', '12']
+#     year = [str(i) for i in range(2012, 2021)]
+#     for targetFolder in splitTargetFolder:
+#         for comName in all_company:
+#             if now >= 0 and comName != '.DS_Store':
+#                 print(comName)
+#                 os.chdir(comName+targetFolder)
+#                 NewAll_filename = [i for i in glob.glob(f"*{file_extension}")]
+#                 print(NewAll_filename)
+#                 for files in NewAll_filename:
+#                     if files.split('_')[0] != 'RoR':
+#                         df = pd.read_csv(files)
+#                         xIndex = []
+#                         dfIndex = -1
+#                         if len(files.split('_')) == 4 or len(files.split('_')) == 7:
+#                             for m in month:
+#                                 for row in df.Date:
+#                                     dfIndex += 1
+#                                     if m == df.Date[dfIndex].split('-')[1]:
+#                                         xIndex.append(int(dfIndex))
+#                                         break
+#                         else:
+#                             for y in year:
+#                                 for row in df.Date:
+#                                     dfIndex += 1
+#                                     if y == df.Date[dfIndex].split('-')[0]:
+#                                         xIndex.append(int(dfIndex))
+#                                         break
+#                         plt.title(files.replace('.csv', ''))
+#                         plt.plot(df.Date, df.Price, label='Price')
+#                         plt.plot(df.Date, df.Hold, label='Hold')
+#                         if len(files.split('_')) != 2 and files.split('_') != 6:
+#                             plt.scatter(df.Date, df.Hold,
+#                                         c='darkorange', s=5, zorder=10)
+#                         plt.xlabel('Date', fontsize=12, c='black')
+#                         plt.ylabel('Price', fontsize=12, c='black')
 
-                        plt.xticks(xIndex, fontsize=9)
-                        plt.yticks(fontsize=9)
-                        plt.legend()
+#                         plt.xticks(xIndex, fontsize=9)
+#                         plt.yticks(fontsize=9)
+#                         plt.legend()
 
-                        plt.grid()
-                        plt.savefig(files.split('.')[0]+'.png',
-                                    dpi=fig.dpi, bbox_inches='tight')
-                        plt.cla()
-                        gc.collect()
-                        print('line chart for ' + files + ' created')
-            now += 1
-            os.chdir(oowd)
-        plt.close(fig)
+#                         plt.grid()
+#                         plt.savefig(files.split('.')[0]+'.png',
+#                                     dpi=fig.dpi, bbox_inches='tight')
+#                         plt.cla()
+#                         gc.collect()
+#                         print('line chart for ' + files + ' created')
+#             now += 1
+#             os.chdir(oowd)
+#         plt.close(fig)
 
-def draw_hold():
-    fig = plt.figure(figsize=[16, 4.5], dpi=300)
-    for company in all_company:
-        os.chdir(company+'/testBestHold')
-        all_filename = [i for i in glob.glob(f"*{file_extension}")]
-        print(all_filename)
-        for file in all_filename:
-            df = pd.read_csv(file)
+# def draw_hold():
+#     fig = plt.figure(figsize=[16, 4.5], dpi=300)
+#     for company in all_company:
+#         os.chdir(company+'/testBestHold')
+#         all_filename = [i for i in glob.glob(f"*{file_extension}")]
+#         print(all_filename)
+#         for file in all_filename:
+#             df = pd.read_csv(file)
             
-            yearIndexes = []
-            year = 0
-            for i, date in enumerate(df['Date']):
-                nowYear = int(date.split('-')[0])
-                if year != nowYear:
-                    yearIndexes.append(i)
-                    year = nowYear
-            yearIndexes.append(df.index[-1])
+#             yearIndexes = []
+#             year = 0
+#             for i, date in enumerate(df['Date']):
+#                 nowYear = int(date.split('-')[0])
+#                 if year != nowYear:
+#                     yearIndexes.append(i)
+#                     year = nowYear
+#             yearIndexes.append(df.index[-1])
             
-            for yearIndex in range(len(yearIndexes)-1):
-                newDf = df.iloc[yearIndexes[yearIndex]:yearIndexes[yearIndex+1]]
-                newDf.reset_index(inplace = True, drop = True)
+#             for yearIndex in range(len(yearIndexes)-1):
+#                 newDf = df.iloc[yearIndexes[yearIndex]:yearIndexes[yearIndex+1]]
+#                 newDf.reset_index(inplace = True, drop = True)
                 
-                ax = plt.gca()
-                ax.plot(newDf['Date'],newDf['Price'],label='Price',color='g')
-                ax.plot(newDf['Date'],newDf['Hold'],label='Hold',color='r')
-                ax.scatter(newDf['Date'],newDf['buy'],c='darkorange', s=8, zorder=10,label='buy')
-                ax.scatter(newDf['Date'],newDf['sell'],c='purple', s=8, zorder=10,label='sell')
+#                 ax = plt.gca()
+#                 ax.plot(newDf['Date'],newDf['Price'],label='Price',color='g')
+#                 ax.plot(newDf['Date'],newDf['Hold'],label='Hold',color='r')
+#                 ax.scatter(newDf['Date'],newDf['buy'],c='darkorange', s=8, zorder=10,label='buy')
+#                 ax.scatter(newDf['Date'],newDf['sell'],c='purple', s=8, zorder=10,label='sell')
                 
-                # buy = [i for i in newDf.index if not np.isnan(newDf.at[i,'buy'])]
-                # sell = [i for i in newDf.index if not np.isnan(newDf.at[i,'sell'])]
-                # ax.vlines(buy, color='darkorange', linestyle='-',alpha=0.5,label='buy',ymin=0,ymax=max(newDf['Price']))
-                # ax.vlines(sell, color='purple', linestyle='-',alpha=0.5,label='sell',ymin=0,ymax=max(newDf['Price']))
-                mIndex = []
-                month = 0
-                for i, date in enumerate(newDf['Date']):
-                    nowMonth = int(date.split('-')[1])
-                    if month != nowMonth:
-                        mIndex.append(i)
-                        month = nowMonth
-                mIndex.append(newDf.index[-1])
-                # ax.set_xticks(mIndex)
-                plt.xticks(mIndex,fontsize=9)
-                plt.yticks(fontsize=9)
-                ax.legend()
-                ax.grid()
-                ax.set_xlabel('Date', fontsize=12, c='black')
-                ax.set_ylabel('Price', fontsize=12, c='black')
-                title = file.replace('.csv','_') + newDf.at[0,'Date'].split('-')[0] + '_Hold'
-                print(title)
-                ax.set_title(title)
-                plt.savefig(title +'.png',dpi=fig.dpi, bbox_inches='tight')
-                plt.clf()
-        os.chdir(oowd)
+#                 # buy = [i for i in newDf.index if not np.isnan(newDf.at[i,'buy'])]
+#                 # sell = [i for i in newDf.index if not np.isnan(newDf.at[i,'sell'])]
+#                 # ax.vlines(buy, color='darkorange', linestyle='-',alpha=0.5,label='buy',ymin=0,ymax=max(newDf['Price']))
+#                 # ax.vlines(sell, color='purple', linestyle='-',alpha=0.5,label='sell',ymin=0,ymax=max(newDf['Price']))
+#                 mIndex = []
+#                 month = 0
+#                 for i, date in enumerate(newDf['Date']):
+#                     nowMonth = int(date.split('-')[1])
+#                     if month != nowMonth:
+#                         mIndex.append(i)
+#                         month = nowMonth
+#                 mIndex.append(newDf.index[-1])
+#                 # ax.set_xticks(mIndex)
+#                 plt.xticks(mIndex,fontsize=9)
+#                 plt.yticks(fontsize=9)
+#                 ax.legend()
+#                 ax.grid()
+#                 ax.set_xlabel('Date', fontsize=12, c='black')
+#                 ax.set_ylabel('Price', fontsize=12, c='black')
+#                 title = file.replace('.csv','_') + newDf.at[0,'Date'].split('-')[0] + '_Hold'
+#                 print(title)
+#                 ax.set_title(title)
+#                 plt.savefig(title +'.png',dpi=fig.dpi, bbox_inches='tight')
+#                 plt.clf()
+#         os.chdir(oowd)
         
