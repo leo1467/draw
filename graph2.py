@@ -7,37 +7,13 @@ import glob
 import os
 import gc
 import matplotlib.ticker as mtick
+from matplotlib.gridspec import GridSpec
 
 root = os.getcwd()
 file_extension = '.csv'
 splitTargetFolder = ['/testBestHold']
 
-def split_testIRR_draw(fileName, split, draw):
-    print(fileName)
-    fileNameList = fileName.split('.')[0].split('_')
-    techName = '_'.join(fileNameList[fileNameList.index('sorted') + 1: ])
-    dirName = 'split_' + fileName.split('.')[0]
-    if not os.path.isdir(dirName):
-            os.mkdir(dirName)
-    if split:
-        oriIRRFile = pd.read_csv(fileName)
-        if True in oriIRRFile.columns.str.contains('^Unnamed'):
-            oriIRRFile = oriIRRFile.loc[: , ~oriIRRFile.columns.str.contains('^Unnamed')]
-            oriIRRFile.to_csv(fileName, index = None)
-        oriIRRFile = oriIRRFile.T.reset_index().T.reset_index(drop = True)
-        os.chdir(dirName)
-        index = []
-        for row, content in enumerate(oriIRRFile[0]):
-            if content[0] == '=':
-                index.append(row)
-        index.append(len(oriIRRFile))
-        for cellIndex in range(len(index) - 1):
-            companyName = oriIRRFile.at[index[cellIndex], oriIRRFile.columns[0]].replace('=', '')
-            oriIRRFile.at[index[cellIndex], oriIRRFile.columns[0]] = 'window'
-            oriIRRFile[index[cellIndex]: index[cellIndex + 1]].to_csv(companyName + '_IRR.csv', header = None, index = None)
-    else:
-        os.chdir(dirName)
-    allIRRFile = [i for i in glob.glob(f"*{file_extension}")]
+class split_testIRR_draw:
     #設定滑動視窗group
     slidingLableClrList = [[['YYY2YYY', 'YYY2YY', 'YYY2Y', 'YYY2YH', 'YY2YY', 'YY2YH', 'YY2Y', 'YH2YH', 'YH2Y', 'Y2Y'], 'gold'],
                            [['YYY2H', 'YYY2Q', 'YYY2M', 'YY2H', 'YY2Q', 'YY2M', 'YH2H', 'YH2Q', 'YH2M', 'Y2H', 'Y2Q', 'Y2M'], 'limegreen'],
@@ -52,145 +28,392 @@ def split_testIRR_draw(fileName, split, draw):
     #設定figure大小
     plt.rcParams['figure.figsize'] = (21, 9)
     allFontSize = 11
-    for Fileindex, file in enumerate(allIRRFile):
-        print(file)
-        if file.split('.')[1] == 'csv':
-            #df前處理
-            company = file.split('_')[0]
-            df = pd.read_csv(file, index_col = 0)
-            # df.rename(columns = {df.columns[0]: 'window'}, inplace = True)
-            for colIndex in df.columns:
-                for rowIndex in df.index:
-                    df.at[rowIndex, colIndex] *= 100
+    
+    def __init__(self, fileName, split, draw):
+        self.process_fileName_dir(fileName)
+        if split:
+            self.split()
+        else:
+            os.chdir(self.dirName)
+        self.allIRRFile = [i for i in glob.glob(f"*{file_extension}")]
+        for FileIndex, file in enumerate(self.allIRRFile):
+            processACompany = self.ProcessACompany(FileIndex, file, self.firstTechName)
+            if draw:
+                processACompany.draw()
+            break
+        os.chdir(root)
+        for dfIndex, eachDf in enumerate(self.tables):
+            if dfIndex == 0:
+                eachDf.to_csv(fileName.split('.')[0] + '_tables.csv')
+            else:
+                eachDf.to_csv(fileName.split('.')[0] + '_tables.csv', mode = 'a', header = None)
+            
+    def process_fileName_dir(self, fileName):
+        self.fileName = fileName
+        print(self.fileName)
+        fileNameList = fileName.split('.')[0].split('_')
+        self.firstTechName = '_'.join(fileNameList[fileNameList.index('sorted') + 1: ])
+        self.dirName = 'split_' + fileName.split('.')[0]
+        if not os.path.isdir(self.dirName):
+            os.mkdir(self.dirName)
+        
+    def split(self):
+        oriIRRFile = pd.read_csv(self.fileName)
+        if True in oriIRRFile.columns.str.contains('^Unnamed'):
+            oriIRRFile = oriIRRFile.loc[: , ~oriIRRFile.columns.str.contains('^Unnamed')]
+            oriIRRFile.to_csv(self.fileName, index = None)
+        oriIRRFile = oriIRRFile.T.reset_index().T.reset_index(drop = True)
+        os.chdir(self.dirName)
+        index = []
+        for row, content in enumerate(oriIRRFile[0]):
+            if content[0] == '=':
+                index.append(row)
+        index.append(len(oriIRRFile))
+        for cellIndex in range(len(index) - 1):
+            companyName = oriIRRFile.at[index[cellIndex], oriIRRFile.columns[0]].replace('=', '')
+            oriIRRFile.at[index[cellIndex], oriIRRFile.columns[0]] = 'window'
+            oriIRRFile[index[cellIndex]: index[cellIndex + 1]].to_csv(companyName + '_IRR.csv', header = None, index = None)
+    
+    class ProcessACompany:
+        table = []
+        tableColumns = list()
+        cellData = list()
+        IRRData = dict()
+        def __init__(self, FileIndex, file, firstTechName):
+            self.firstTechName = firstTechName
+            print(file)
+            if file.split('.')[1] == 'csv':
+                #df前處理
+                self.company = file.split('_')[0]
+                self.df = pd.read_csv(file, index_col = 0)
+                # df.rename(columns = {df.columns[0]: 'window'}, inplace = True)
+                for colIndex in self.df.columns:
+                    for rowIndex in self.df.index:
+                        self.df.at[rowIndex, colIndex] *= 100
+                self.process_IRRFile(FileIndex, file)
+    
+        def process_IRRFile(self, FileIndex, file):
             # table資料
-            tableColumns = ['highest IRR diff\n algo/trad', 'algo win rate', 'algo avg IRR', 'trad avg IRR', 'highest IRR diff\n algo/B&H', 'highest IRR diff\n trad/B&H']
-            cellData = list()
-            IRRData = dict()
-            for colIndex, col in enumerate(df.columns):
-                IRRData.update({col: np.array([x for i, x in enumerate(df[col]) if df.index[i] != 'B&H'])})
-            cellData.append(max(IRRData[df.columns[0]]) - max(IRRData[df.columns[1]]))
-            cellData.append(len([i for i, j in zip(IRRData[df.columns[0]], IRRData[df.columns[1]]) if i > j]) / len(IRRData[df.columns[0]]) * 100)
-            cellData.append(np.average(IRRData[df.columns[0]]))
-            cellData.append(np.average(IRRData[df.columns[1]]))
-            cellData.append(max(IRRData[df.columns[0]]) - df.at['B&H', df.columns[0]])
-            cellData.append(max(IRRData[df.columns[1]]) - df.at['B&H', df.columns[0]])
-            if len(df.columns) > 2:
-                secndTechName = df.columns[2].split(" ")[0]
-                tableColumns.append(f'highest IRR diff of algo\n{techName}/{secndTechName}')
-                cellData.append(max(IRRData[df.columns[0]]) - max(IRRData[df.columns[2]]))
-                tableColumns.append(f'highest IRR diff of trad\n{techName}/{secndTechName}')
-                cellData.append(max(IRRData[df.columns[1]]) - max(IRRData[df.columns[3]]))
-                tableColumns.append(f'algo win rate\n{techName}/{secndTechName}')
-                cellData.append(len([i for i, j in zip(IRRData[df.columns[0]], IRRData[df.columns[2]]) if i > j]) / len(IRRData[df.columns[0]]) * 100)
-                tableColumns.append(f'trad win rate\n{techName}/{secndTechName}')
-                cellData.append(len([i for i, j in zip(IRRData[df.columns[1]], IRRData[df.columns[3]]) if i > j]) / len(IRRData[df.columns[0]]) * 100)
-            if len(df.columns) > 4:
-                thirdTechName = df.columns[4].split(" ")[0]
-                tableColumns.append(f'highest IRR diff of algo\n{techName}/{thirdTechName}')
-                cellData.append(max(IRRData[df.columns[0]]) - max(IRRData[df.columns[4]]))
-                tableColumns.append(f'highest IRR diff of trad\n{techName}/{thirdTechName}')
-                cellData.append(max(IRRData[df.columns[1]]) - max(IRRData[df.columns[5]]))
-                tableColumns.append(f'algo win rate\n{techName}/{thirdTechName}')
-                cellData.append(len([i for i, j in zip(IRRData[df.columns[0]], IRRData[df.columns[4]]) if i > j]) / len(IRRData[df.columns[0]]) * 100)
-                tableColumns.append(f'trad win rate\n{techName}/{thirdTechName}')
-                cellData.append(len([i for i, j in zip(IRRData[df.columns[1]], IRRData[df.columns[5]]) if i > j]) / len(IRRData[df.columns[0]]) * 100)
+            for colIndex, col in enumerate(self.df.columns):
+                self.IRRData.update({col: np.array([x for i, x in enumerate(self.df[col]) if self.df.index[i] != 'B&H'])})
+            self.add_col(self.firstTechName, 'algo', 'trad', 6)
+            self.add_info(0, 1, 6)
+            if len(self.df.columns) > 2:
+                self.secndTechName = self.df.columns[2].split(" ")[0]
+                self.add_col(self.secndTechName, 'algo', 'trad', 6)
+                self.add_info(2, 3, 6)
+            if len(self.df.columns) > 4:
+                self.thirdTechName = self.df.columns[4].split(" ")[0]
+                self.add_col(self.thirdTechName, 'algo', 'trad', 6)
+                self.add_info(4, 5, 6)
                 windowChoose = list()
                 windowChoose.append(df[df.columns[6]] / df['window num'] * 100)
                 windowChoose.append(df[df.columns[8]] / df['window num'] * 100)
                 for i in range(len(windowChoose)):
                     windowChoose[i] = ['%.2f' % elem + '%' for elem in windowChoose[i]]
-                windowChooseDf = pd.DataFrame(windowChoose, columns = [df.index], index = [df.columns[6], df.columns[8]])
+                self.windowChooseDf = pd.DataFrame(windowChoose, columns = [df.index], index = [df.columns[6], df.columns[8]])
                 df = df.drop(columns = [col for col in df.columns[-5: ]])
-            cellData = ['%.2f' % elem for elem in cellData]
-            cellData = np.array([[elem + '%'] for elem in cellData])
-            tableDf = pd.DataFrame(cellData.reshape(1, len(tableColumns)), columns = tableColumns)
-            tableDf.rename(index = { 0: company }, inplace = True)
-            tables.append(tableDf)
-            if draw:
-                #設定每個bar的顏色及bar的最終寬度
-                colorDict = dict(zip(df.columns, barColorSet))
-                if len(df.columns) < 3:
-                    totalBarWidth = 0.5
-                #將過長的df切開
-                if len(df.columns) < 5:
-                    figCnt = 2
-                else:
-                    figCnt = 3
-                dfCuttedIndex = list()
-                for i in range(figCnt):
-                    dfCuttedIndex.append(floor(len(df) / figCnt) * i)
-                dfCuttedIndex.append(len(df))
-                #開始畫圖
-                fig, axs = plt.subplots(figCnt, sharey = True)
-                axIndexForLegned = 0
-                for splitIndex in range(len(dfCuttedIndex) - 1):
-                    subDf = df.iloc[dfCuttedIndex[splitIndex]: dfCuttedIndex[splitIndex + 1]]
-                    plot = subDf.plot.bar(ax = axs[splitIndex], width = totalBarWidth, rot = 0, color = colorDict, edgecolor = 'black', linewidth = 0.2, legend = None)
-                    #找出B&H位置，將B&H的bar變成紅色
-                    BHIndex = [i for i, x in enumerate(subDf.index) if x == 'B&H']
-                    if not len(BHIndex):
-                        axIndexForLegned = splitIndex
-                    if len(BHIndex):
-                        for barIndex, barContainer in enumerate(plot.containers):
-                            if barIndex == 0:
-                                singleBarWidth = barContainer[BHIndex[0]].get_width()
-                                barX = ((barContainer[BHIndex[0]].get_x() + (barContainer[BHIndex[0]].get_x() + (len(subDf.columns) * singleBarWidth))) - singleBarWidth) / 2
-                            barContainer[BHIndex[0]].set_color('r')
-                            barContainer[BHIndex[0]].set_x(barX)
-                            barContainer[BHIndex[0]].set_edgecolor('black')
-                    #設定其他屬性
-                    axs[splitIndex].grid(axis = 'y')
-                    axs[splitIndex].yaxis.set_major_formatter(mtick.PercentFormatter())  #把座標變成%
-                    axs[splitIndex].set_xticklabels(subDf.index, rotation = 45)
-                    axs[splitIndex].set(xlabel = "", ylabel = "")
-                    axs[splitIndex].tick_params(axis = 'both', labelsize = allFontSize)  #設定xlabel ylabel字形大小
-                    #設定lable顏色
-                    for cellIndex in axs[splitIndex].get_xticklabels():
-                        txt = cellIndex.get_text()
-                        for slideGroup in slidingLableClrList:
-                            if txt in slideGroup[0]:
-                                plt.setp(cellIndex, bbox = dict(boxstyle = 'round', edgecolor = 'none', alpha = 1, facecolor = slideGroup[1]))
-                                break
-                    #設定top table跟bottom table
-                    if splitIndex == 0:
-                        if len(subDf.columns) < 5:
-                            myBox = [0, 1.05, 1, 0.22]
-                        else:
-                            myBox = [0, 1.05, 1, 0.4]
-                        celBGC = [['gainsboro'] * 6, ['silver'] * 4, ['darkgray'] * 4]
-                        colClrs = list()
-                        for i in range(figCnt):
-                            for clr in celBGC[i]:
-                                colClrs.append(clr)
-                        topTable = axs[splitIndex].table(colLabels = tableDf.columns, cellText = tableDf.values, loc = 'top', cellLoc = 'center', colColours = colClrs, bbox = myBox)
-                        # for colIndex in range(len(tableDf.columns)):  #設定cell text顏色
-                        #     topTable[0, colIndex].get_text().set_color('white')
-                        topTable.auto_set_column_width(col = list(range(len(tableDf.columns))))
-                        topTable.auto_set_font_size(False)
-                        topTable.set_fontsize('medium')  # Valid font size are xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
-                    if len(df.columns) > 4:
-                        continue
-                        chooseDf = windowChooseDf[windowChooseDf.columns[dfCuttedIndex[splitIndex]: dfCuttedIndex[splitIndex + 1]]]
-                        table = axs[splitIndex].table(cellText = chooseDf.values, loc = 'bottom', cellLoc = 'center', rowLabels = [chooseDf.index[0], chooseDf.index[1]], bbox = [0, 0, 1, 0.2])
-                handles, labels = axs[axIndexForLegned].get_legend_handles_labels()
-                fig.legend(handles, labels, loc = 'upper center', bbox_to_anchor = (0.5, 0), fancybox = True, shadow = False, ncol = len(df.columns), fontsize = allFontSize)
-                # plt.legend(loc = 'upper center', bbox_to_anchor = (0.5, -0.3), fancybox = True, shadow = False, ncol = len(df.columns), fontsize = allFontSize)
-                fig.tight_layout()
-                fig.suptitle(company + '_' + techName + '_IRR_rank', y = 1.02, fontsize = allFontSize + 5)
-                plt.savefig(company + '_all_IRR'  + '.png', dpi = 300, bbox_inches = 'tight')
-                plt.cla()
-                plt.close(fig)
-            # exit(0)
-    os.chdir(root)
-    for dfIndex, eachDf in enumerate(tables):
-        if dfIndex == 0:
-            eachDf.to_csv(fileName.split('.')[0] + '_tables.csv')
-        else:
-            eachDf.to_csv(fileName.split('.')[0] + '_tables.csv', mode = 'a', header = None)
+            if len(self.df.columns) > 2:
+                self.add_col('', self.firstTechName, self.secndTechName, 4)
+                self.add_info(0, 2, 4)
+            if len(self.df.columns) > 4:
+                self.add_col('', self.firstTechName, self.thirdTechName, 4)
+                self.add_info(0, 4, 4)
+            self.cellData = ['%.2f' % elem for elem in self.cellData]
+            self.cellData = np.array([[elem + '%'] for elem in self.cellData])
+            self.tableDf = pd.DataFrame(self.cellData.reshape(1, len(self.tableColumns)), columns = self.tableColumns)
+            self.tableDf.rename(index = { 0: self.company }, inplace = True)
+            split_testIRR_draw.tables.append(self.tableDf)
+                
+        def add_col(self, fTechName, comp1, comp2, colNum):
+            newColumns = [f'{fTechName} highest IRR diff\n {comp1}/{comp2}', 
+                            f'{fTechName} algo win rate', 
+                            f'{fTechName} algo avg IRR', 
+                            f'{fTechName} trad avg IRR', 
+                            f'{fTechName} highest IRR diff\n {comp1}/B&H', 
+                            f'{fTechName} highest IRR diff\n {comp2}/B&H']
+            for t in newColumns[: colNum]:
+                self.tableColumns.append(t)
+            
+        def add_info(self, col1, col2, dataNum):
+            data = [max(self.IRRData[self.df.columns[col1]]) - max(self.IRRData[self.df.columns[col2]]),
+                    len([i for i, j in zip(self.IRRData[self.df.columns[col1]], self.IRRData[self.df.columns[col2]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100,
+                    np.average(self.IRRData[self.df.columns[col1]]),
+                    np.average(self.IRRData[self.df.columns[col2]]),
+                    max(self.IRRData[self.df.columns[col1]]) - self.df.at['B&H', self.df.columns[col1]],
+                    max(self.IRRData[self.df.columns[col2]]) - self.df.at['B&H', self.df.columns[col2]]]
+            for d in data[:dataNum]:
+                self.cellData.append(d)
+        
+        def draw(self):
+            #設定每個bar的顏色及bar的最終寬度
+            colorDict = dict(zip(self.df.columns, split_testIRR_draw.barColorSet))
+            if len(self.df.columns) < 3:
+                totalBarWidth = 0.5
+            #將過長的df切開
+            if len(self.df.columns) < 5:
+                figCnt = 2
+            else:
+                figCnt = 3
+            dfCuttedIndex = list()
+            for i in range(figCnt):
+                dfCuttedIndex.append(floor(len(self.df) / figCnt) * i)
+            dfCuttedIndex.append(len(self.df))
+            #開始畫圖
+            fig, axs = plt.subplots(figCnt, sharey = True)
+            # gs = GridSpec()
+            for splitIndex in range(len(dfCuttedIndex) - 1):
+                subDf = self.df.iloc[dfCuttedIndex[splitIndex]: dfCuttedIndex[splitIndex + 1]]
+                plot = subDf.plot.bar(ax = axs[splitIndex], width = split_testIRR_draw.totalBarWidth, rot = 0, color = colorDict, edgecolor = 'black', linewidth = 0.2, legend = None)
+                #找出B&H位置，將B&H的bar變成紅色
+                BHIndex = [i for i, x in enumerate(subDf.index) if x == 'B&H']
+                if not len(BHIndex):
+                    axIndexForLegned = splitIndex
+                if len(BHIndex):
+                    for barIndex, barContainer in enumerate(plot.containers):
+                        if barIndex == 0:
+                            singleBarWidth = barContainer[BHIndex[0]].get_width()
+                            barX = ((barContainer[BHIndex[0]].get_x() + (barContainer[BHIndex[0]].get_x() + (len(subDf.columns) * singleBarWidth))) - singleBarWidth) / 2
+                        barContainer[BHIndex[0]].set_color('r')
+                        barContainer[BHIndex[0]].set_x(barX)
+                        barContainer[BHIndex[0]].set_edgecolor('black')
+                #設定其他屬性
+                axs[splitIndex].grid(axis = 'y')
+                axs[splitIndex].yaxis.set_major_formatter(mtick.PercentFormatter())  #把座標變成%
+                axs[splitIndex].set_xticklabels(subDf.index, rotation = 45)
+                axs[splitIndex].set(xlabel = "", ylabel = "")
+                axs[splitIndex].tick_params(axis = 'both', labelsize = split_testIRR_draw.allFontSize)  #設定xlabel ylabel字形大小
+                #設定lable顏色
+                for cellIndex in axs[splitIndex].get_xticklabels():
+                    txt = cellIndex.get_text()
+                    for slideGroup in split_testIRR_draw.slidingLableClrList:
+                        if txt in slideGroup[0]:
+                            plt.setp(cellIndex, bbox = dict(boxstyle = 'round', edgecolor = 'none', alpha = 1, facecolor = slideGroup[1]))
+                            break
+                #設定top table跟bottom table
+                if splitIndex == 0:
+                    if len(subDf.columns) < 5:
+                        myBox = [0, 1.05, 1, 0.22]
+                    else:
+                        myBox = [0, 1.05, 1, 0.4]
+                    celBGC = [['gainsboro'] * 6, ['silver'] * 4, ['darkgray'] * 4]
+                    colClrs = list()
+                    for i in range(figCnt):
+                        for clr in celBGC[i]:
+                            colClrs.append(clr)
+                    topTable = axs[splitIndex].table(colLabels = self.tableDf.columns, 
+                                                        cellText = self.tableDf.values, 
+                                                        loc = 'top', 
+                                                        cellLoc = 'center', 
+                                                        # colColours = colClrs, 
+                                                        bbox = myBox)
+                    # for colIndex in range(len(tableDf.columns)):  #設定cell text顏色
+                    #     topTable[0, colIndex].get_text().set_color('white')
+                    topTable.auto_set_column_width(col = list(range(len(self.tableDf.columns))))
+                    topTable.auto_set_font_size(False)
+                    topTable.set_fontsize('medium')  # Valid font size are xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
+                if len(self.df.columns) > 4:
+                    continue
+                    chooseDf = windowChooseDf[windowChooseDf.columns[dfCuttedIndex[splitIndex]: dfCuttedIndex[splitIndex + 1]]]
+                    table = axs[splitIndex].table(cellText = chooseDf.values, loc = 'bottom', cellLoc = 'center', rowLabels = [chooseDf.index[0], chooseDf.index[1]], bbox = [0, 0, 1, 0.2])
+            handles, labels = axs[axIndexForLegned].get_legend_handles_labels()
+            fig.legend(handles, labels, loc = 'upper center', 
+                       bbox_to_anchor = (0.5, 0), fancybox = True, 
+                       shadow = False, ncol = len(self.df.columns), 
+                       fontsize = split_testIRR_draw.allFontSize)
+            # plt.legend(loc = 'upper center', bbox_to_anchor = (0.5, -0.3), fancybox = True, shadow = False, ncol = len(df.columns), fontsize = allFontSize)
+            fig.tight_layout()
+            fig.suptitle(self.company + '_' + self.firstTechName + '_IRR_rank', y = 1.02, fontsize = split_testIRR_draw.allFontSize + 5)
+            plt.savefig(self.company + '_all_IRR'  + '.png', dpi = 300, bbox_inches = 'tight')
+            plt.cla()
+            plt.close(fig)
 
 if __name__ == '__main__':
     # draw_hold()
-    split_testIRR_draw('test_IRR_IRR_sorted_SMA_RSI_2' + '.csv', 0, True)
+    x = split_testIRR_draw('test_IRR_IRR_sorted_SMA_2' + '.csv', 1, 1)
+    
+# def split_testIRR_draw(fileName, split, draw):
+#     print(fileName)
+#     fileNameList = fileName.split('.')[0].split('_')
+#     techName = '_'.join(fileNameList[fileNameList.index('sorted') + 1: ])
+#     dirName = 'split_' + fileName.split('.')[0]
+#     if not os.path.isdir(dirName):
+#             os.mkdir(dirName)
+#     if split:
+#         oriIRRFile = pd.read_csv(fileName)
+#         if True in oriIRRFile.columns.str.contains('^Unnamed'):
+#             oriIRRFile = oriIRRFile.loc[: , ~oriIRRFile.columns.str.contains('^Unnamed')]
+#             oriIRRFile.to_csv(fileName, index = None)
+#         oriIRRFile = oriIRRFile.T.reset_index().T.reset_index(drop = True)
+#         os.chdir(dirName)
+#         index = []
+#         for row, content in enumerate(oriIRRFile[0]):
+#             if content[0] == '=':
+#                 index.append(row)
+#         index.append(len(oriIRRFile))
+#         for cellIndex in range(len(index) - 1):
+#             companyName = oriIRRFile.at[index[cellIndex], oriIRRFile.columns[0]].replace('=', '')
+#             oriIRRFile.at[index[cellIndex], oriIRRFile.columns[0]] = 'window'
+#             oriIRRFile[index[cellIndex]: index[cellIndex + 1]].to_csv(companyName + '_IRR.csv', header = None, index = None)
+#     else:
+#         os.chdir(dirName)
+#     allIRRFile = [i for i in glob.glob(f"*{file_extension}")]
+#     #設定滑動視窗group
+#     slidingLableClrList = [[['YYY2YYY', 'YYY2YY', 'YYY2Y', 'YYY2YH', 'YY2YY', 'YY2YH', 'YY2Y', 'YH2YH', 'YH2Y', 'Y2Y'], 'gold'],
+#                            [['YYY2H', 'YYY2Q', 'YYY2M', 'YY2H', 'YY2Q', 'YY2M', 'YH2H', 'YH2Q', 'YH2M', 'Y2H', 'Y2Q', 'Y2M'], 'limegreen'],
+#                            [['H2H', 'H#', 'H2Q', 'Q2Q', 'Q#', 'H2M', 'Q2M', 'M2M', 'M#'], 'r'],
+#                            [['20D20', '20D15', '20D10', '20D5', '15D15', '15D10', '15D5', '10D10', '10D5', '5D5'], 'grey'],
+#                            [['4W4', '4W3', '4W2', '4W1', '3W3', '3W2', '3W1', '2W2', '2W1', '1W1'], 'darkgoldenrod']]
+#     #設定bar屬性
+#     barColorSet = ['steelblue', 'darkorange', 'paleturquoise', 'wheat', 'lightcyan', 'lightyellow']
+#     totalBarWidth = 0.80
+#     #儲存全部table資料
+#     tables = []
+#     #設定figure大小
+#     plt.rcParams['figure.figsize'] = (21, 9)
+#     allFontSize = 11
+#     for Fileindex, file in enumerate(allIRRFile):
+#         print(file)
+#         if file.split('.')[1] == 'csv':
+#             #df前處理
+#             company = file.split('_')[0]
+#             df = pd.read_csv(file, index_col = 0)
+#             # df.rename(columns = {df.columns[0]: 'window'}, inplace = True)
+#             for colIndex in df.columns:
+#                 for rowIndex in df.index:
+#                     df.at[rowIndex, colIndex] *= 100
+#             # table資料
+#             tableColumns = ['highest IRR diff\n algo/trad', 'algo win rate', 'algo avg IRR', 'trad avg IRR', 'highest IRR diff\n algo/B&H', 'highest IRR diff\n trad/B&H']
+#             cellData = list()
+#             IRRData = dict()
+#             for colIndex, col in enumerate(df.columns):
+#                 IRRData.update({col: np.array([x for i, x in enumerate(df[col]) if df.index[i] != 'B&H'])})
+#             cellData.append(max(IRRData[df.columns[0]]) - max(IRRData[df.columns[1]]))
+#             cellData.append(len([i for i, j in zip(IRRData[df.columns[0]], IRRData[df.columns[1]]) if i > j]) / len(IRRData[df.columns[0]]) * 100)
+#             cellData.append(np.average(IRRData[df.columns[0]]))
+#             cellData.append(np.average(IRRData[df.columns[1]]))
+#             cellData.append(max(IRRData[df.columns[0]]) - df.at['B&H', df.columns[0]])
+#             cellData.append(max(IRRData[df.columns[1]]) - df.at['B&H', df.columns[0]])
+#             if len(df.columns) > 2:
+#                 secndTechName = df.columns[2].split(" ")[0]
+#                 tableColumns.append(f'highest IRR diff of algo\n{techName}/{secndTechName}')
+#                 cellData.append(max(IRRData[df.columns[0]]) - max(IRRData[df.columns[2]]))
+#                 tableColumns.append(f'highest IRR diff of trad\n{techName}/{secndTechName}')
+#                 cellData.append(max(IRRData[df.columns[1]]) - max(IRRData[df.columns[3]]))
+#                 tableColumns.append(f'algo win rate\n{techName}/{secndTechName}')
+#                 cellData.append(len([i for i, j in zip(IRRData[df.columns[0]], IRRData[df.columns[2]]) if i > j]) / len(IRRData[df.columns[0]]) * 100)
+#                 tableColumns.append(f'trad win rate\n{techName}/{secndTechName}')
+#                 cellData.append(len([i for i, j in zip(IRRData[df.columns[1]], IRRData[df.columns[3]]) if i > j]) / len(IRRData[df.columns[0]]) * 100)
+                
+#                 tableColumns.append(f'{secndTechName} highest IRR diff\n algo/trad')
+#                 cellData.append(max(IRRData[df.columns[2]]) - max(IRRData[df.columns[3]]))
+#                 tableColumns.append(f'{secndTechName} algo win rate')
+#                 cellData.append(len([i for i, j in zip(IRRData[df.columns[2]], IRRData[df.columns[3]]) if i > j]) / len(IRRData[df.columns[0]]) * 100)
+#                 tableColumns.append(f'{secndTechName} highest IRR diff\n algo/B&H')
+#                 cellData.append(max(IRRData[df.columns[2]]) - df.at['B&H', df.columns[0]])
+#             if len(df.columns) > 4:
+#                 thirdTechName = df.columns[4].split(" ")[0]
+#                 tableColumns.append(f'highest IRR diff of algo\n{techName}/{thirdTechName}')
+#                 cellData.append(max(IRRData[df.columns[0]]) - max(IRRData[df.columns[4]]))
+#                 tableColumns.append(f'highest IRR diff of trad\n{techName}/{thirdTechName}')
+#                 cellData.append(max(IRRData[df.columns[1]]) - max(IRRData[df.columns[5]]))
+#                 tableColumns.append(f'algo win rate\n{techName}/{thirdTechName}')
+#                 cellData.append(len([i for i, j in zip(IRRData[df.columns[0]], IRRData[df.columns[4]]) if i > j]) / len(IRRData[df.columns[0]]) * 100)
+#                 tableColumns.append(f'trad win rate\n{techName}/{thirdTechName}')
+#                 cellData.append(len([i for i, j in zip(IRRData[df.columns[1]], IRRData[df.columns[5]]) if i > j]) / len(IRRData[df.columns[0]]) * 100)
+#                 windowChoose = list()
+#                 windowChoose.append(df[df.columns[6]] / df['window num'] * 100)
+#                 windowChoose.append(df[df.columns[8]] / df['window num'] * 100)
+#                 for i in range(len(windowChoose)):
+#                     windowChoose[i] = ['%.2f' % elem + '%' for elem in windowChoose[i]]
+#                 windowChooseDf = pd.DataFrame(windowChoose, columns = [df.index], index = [df.columns[6], df.columns[8]])
+#                 df = df.drop(columns = [col for col in df.columns[-5: ]])
+#             cellData = ['%.2f' % elem for elem in cellData]
+#             cellData = np.array([[elem + '%'] for elem in cellData])
+#             tableDf = pd.DataFrame(cellData.reshape(1, len(tableColumns)), columns = tableColumns)
+#             tableDf.rename(index = { 0: company }, inplace = True)
+#             tables.append(tableDf)
+#             if draw:
+#                 #設定每個bar的顏色及bar的最終寬度
+#                 colorDict = dict(zip(df.columns, barColorSet))
+#                 if len(df.columns) < 3:
+#                     totalBarWidth = 0.5
+#                 #將過長的df切開
+#                 if len(df.columns) < 5:
+#                     figCnt = 2
+#                 else:
+#                     figCnt = 3
+#                 dfCuttedIndex = list()
+#                 for i in range(figCnt):
+#                     dfCuttedIndex.append(floor(len(df) / figCnt) * i)
+#                 dfCuttedIndex.append(len(df))
+#                 #開始畫圖
+#                 fig, axs = plt.subplots(figCnt, sharey = True)
+#                 axIndexForLegned = 0
+#                 for splitIndex in range(len(dfCuttedIndex) - 1):
+#                     subDf = df.iloc[dfCuttedIndex[splitIndex]: dfCuttedIndex[splitIndex + 1]]
+#                     plot = subDf.plot.bar(ax = axs[splitIndex], width = totalBarWidth, rot = 0, color = colorDict, edgecolor = 'black', linewidth = 0.2, legend = None)
+#                     #找出B&H位置，將B&H的bar變成紅色
+#                     BHIndex = [i for i, x in enumerate(subDf.index) if x == 'B&H']
+#                     if not len(BHIndex):
+#                         axIndexForLegned = splitIndex
+#                     if len(BHIndex):
+#                         for barIndex, barContainer in enumerate(plot.containers):
+#                             if barIndex == 0:
+#                                 singleBarWidth = barContainer[BHIndex[0]].get_width()
+#                                 barX = ((barContainer[BHIndex[0]].get_x() + (barContainer[BHIndex[0]].get_x() + (len(subDf.columns) * singleBarWidth))) - singleBarWidth) / 2
+#                             barContainer[BHIndex[0]].set_color('r')
+#                             barContainer[BHIndex[0]].set_x(barX)
+#                             barContainer[BHIndex[0]].set_edgecolor('black')
+#                     #設定其他屬性
+#                     axs[splitIndex].grid(axis = 'y')
+#                     axs[splitIndex].yaxis.set_major_formatter(mtick.PercentFormatter())  #把座標變成%
+#                     axs[splitIndex].set_xticklabels(subDf.index, rotation = 45)
+#                     axs[splitIndex].set(xlabel = "", ylabel = "")
+#                     axs[splitIndex].tick_params(axis = 'both', labelsize = allFontSize)  #設定xlabel ylabel字形大小
+#                     #設定lable顏色
+#                     for cellIndex in axs[splitIndex].get_xticklabels():
+#                         txt = cellIndex.get_text()
+#                         for slideGroup in slidingLableClrList:
+#                             if txt in slideGroup[0]:
+#                                 plt.setp(cellIndex, bbox = dict(boxstyle = 'round', edgecolor = 'none', alpha = 1, facecolor = slideGroup[1]))
+#                                 break
+#                     #設定top table跟bottom table
+#                     if splitIndex == 0:
+#                         if len(subDf.columns) < 5:
+#                             myBox = [0, 1.05, 1, 0.22]
+#                         else:
+#                             myBox = [0, 1.05, 1, 0.4]
+#                         celBGC = [['gainsboro'] * 6, ['silver'] * 4, ['darkgray'] * 4]
+#                         colClrs = list()
+#                         for i in range(figCnt):
+#                             for clr in celBGC[i]:
+#                                 colClrs.append(clr)
+#                         topTable = axs[splitIndex].table(colLabels = tableDf.columns, cellText = tableDf.values, loc = 'top', cellLoc = 'center', colColours = colClrs, bbox = myBox)
+#                         # for colIndex in range(len(tableDf.columns)):  #設定cell text顏色
+#                         #     topTable[0, colIndex].get_text().set_color('white')
+#                         topTable.auto_set_column_width(col = list(range(len(tableDf.columns))))
+#                         topTable.auto_set_font_size(False)
+#                         topTable.set_fontsize('medium')  # Valid font size are xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
+#                     if len(df.columns) > 4:
+#                         continue
+#                         chooseDf = windowChooseDf[windowChooseDf.columns[dfCuttedIndex[splitIndex]: dfCuttedIndex[splitIndex + 1]]]
+#                         table = axs[splitIndex].table(cellText = chooseDf.values, loc = 'bottom', cellLoc = 'center', rowLabels = [chooseDf.index[0], chooseDf.index[1]], bbox = [0, 0, 1, 0.2])
+#                 handles, labels = axs[axIndexForLegned].get_legend_handles_labels()
+#                 fig.legend(handles, labels, loc = 'upper center', bbox_to_anchor = (0.5, 0), fancybox = True, shadow = False, ncol = len(df.columns), fontsize = allFontSize)
+#                 # plt.legend(loc = 'upper center', bbox_to_anchor = (0.5, -0.3), fancybox = True, shadow = False, ncol = len(df.columns), fontsize = allFontSize)
+#                 fig.tight_layout()
+#                 fig.suptitle(company + '_' + techName + '_IRR_rank', y = 1.02, fontsize = allFontSize + 5)
+#                 plt.savefig(company + '_all_IRR'  + '.png', dpi = 300, bbox_inches = 'tight')
+#                 plt.cla()
+#                 plt.close(fig)
+#             # exit(0)
+#     os.chdir(root)
+#     for dfIndex, eachDf in enumerate(tables):
+#         if dfIndex == 0:
+#             eachDf.to_csv(fileName.split('.')[0] + '_tables.csv')
+#         else:
+#             eachDf.to_csv(fileName.split('.')[0] + '_tables.csv', mode = 'a', header = None)
 
 # def split_hold_period():
 #     for targetFolder in splitTargetFolder:
