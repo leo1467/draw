@@ -1,5 +1,6 @@
 from math import floor
 from turtle import color
+from matplotlib import gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -27,7 +28,7 @@ class split_testIRR_draw:
     tables = []
     #設定figure大小
     plt.rcParams['figure.figsize'] = (21, 9)
-    allFontSize = 11
+    allFontSize = 10
     
     def __init__(self, fileName, split, draw):
         self.process_fileName_dir(fileName)
@@ -40,7 +41,6 @@ class split_testIRR_draw:
             processACompany = self.ProcessACompany(FileIndex, file, self.firstTechName)
             if draw:
                 processACompany.draw()
-            break
         os.chdir(root)
         for dfIndex, eachDf in enumerate(self.tables):
             if dfIndex == 0:
@@ -75,11 +75,11 @@ class split_testIRR_draw:
             oriIRRFile[index[cellIndex]: index[cellIndex + 1]].to_csv(companyName + '_IRR.csv', header = None, index = None)
     
     class ProcessACompany:
-        table = []
-        tableColumns = list()
-        cellData = list()
-        IRRData = dict()
         def __init__(self, FileIndex, file, firstTechName):
+            self.table = []
+            self.tableColumns = list()
+            self.cellData = list()
+            self.IRRData = dict()
             self.firstTechName = firstTechName
             print(file)
             if file.split('.')[1] == 'csv':
@@ -87,6 +87,10 @@ class split_testIRR_draw:
                 self.company = file.split('_')[0]
                 self.df = pd.read_csv(file, index_col = 0)
                 # df.rename(columns = {df.columns[0]: 'window'}, inplace = True)
+                self.techNum = 0
+                for col in self.df.columns:
+                    if col.split(' ')[-1] == 'algo':
+                        self.techNum += 1
                 for colIndex in self.df.columns:
                     for rowIndex in self.df.index:
                         self.df.at[rowIndex, colIndex] *= 100
@@ -96,79 +100,151 @@ class split_testIRR_draw:
             # table資料
             for colIndex, col in enumerate(self.df.columns):
                 self.IRRData.update({col: np.array([x for i, x in enumerate(self.df[col]) if self.df.index[i] != 'B&H'])})
-            self.add_col(self.firstTechName, 'algo', 'trad', 6)
+            self.add_col(self.firstTechName, '', colNum = 6)
             self.add_info(0, 1, 6)
             if len(self.df.columns) > 2:
                 self.secndTechName = self.df.columns[2].split(" ")[0]
-                self.add_col(self.secndTechName, 'algo', 'trad', 6)
+                self.add_col(self.secndTechName, '', colNum = 6)
                 self.add_info(2, 3, 6)
-            if len(self.df.columns) > 4:
-                self.thirdTechName = self.df.columns[4].split(" ")[0]
-                self.add_col(self.thirdTechName, 'algo', 'trad', 6)
-                self.add_info(4, 5, 6)
-                windowChoose = list()
-                windowChoose.append(df[df.columns[6]] / df['window num'] * 100)
-                windowChoose.append(df[df.columns[8]] / df['window num'] * 100)
-                for i in range(len(windowChoose)):
-                    windowChoose[i] = ['%.2f' % elem + '%' for elem in windowChoose[i]]
-                self.windowChooseDf = pd.DataFrame(windowChoose, columns = [df.index], index = [df.columns[6], df.columns[8]])
-                df = df.drop(columns = [col for col in df.columns[-5: ]])
+                if len(self.df.columns) > 4:
+                    self.thirdTechName = self.df.columns[4].split(" ")[0]
+                    self.add_col(self.thirdTechName, '', colNum = 6)
+                    self.add_info(4, 5, 6)
+                    windowChoose = list()
+                    windowChoose.append(self.df[self.df.columns[6]] / self.df['window num'] * 100)
+                    windowChoose.append(self.df[self.df.columns[8]] / self.df['window num'] * 100)
+                    for i in range(len(windowChoose)):
+                        windowChoose[i] = ['%.2f' % elem + '%' for elem in windowChoose[i]]
+                    self.windowChooseDf = pd.DataFrame(windowChoose, columns = [self.df.index], index = [self.df.columns[6], self.df.columns[8]])
+                    self.df = self.df.drop(columns = [col for col in self.df.columns[-5: ]])
             if len(self.df.columns) > 2:
-                self.add_col('', self.firstTechName, self.secndTechName, 4)
+                self.add_col(self.firstTechName, self.secndTechName, 4)
                 self.add_info(0, 2, 4)
-            if len(self.df.columns) > 4:
-                self.add_col('', self.firstTechName, self.thirdTechName, 4)
-                self.add_info(0, 4, 4)
+                if len(self.df.columns) > 4:
+                    self.add_col(self.firstTechName, self.thirdTechName, 4)
+                    self.add_info(0, 4, 4)
             self.cellData = ['%.2f' % elem for elem in self.cellData]
             self.cellData = np.array([[elem + '%'] for elem in self.cellData])
             self.tableDf = pd.DataFrame(self.cellData.reshape(1, len(self.tableColumns)), columns = self.tableColumns)
             self.tableDf.rename(index = { 0: self.company }, inplace = True)
             split_testIRR_draw.tables.append(self.tableDf)
                 
-        def add_col(self, fTechName, comp1, comp2, colNum):
-            newColumns = [f'{fTechName} highest IRR diff\n {comp1}/{comp2}', 
-                            f'{fTechName} algo win rate', 
-                            f'{fTechName} algo avg IRR', 
-                            f'{fTechName} trad avg IRR', 
-                            f'{fTechName} highest IRR diff\n {comp1}/B&H', 
-                            f'{fTechName} highest IRR diff\n {comp2}/B&H']
-            for t in newColumns[: colNum]:
+        def add_col(self, comp1, comp2, colNum):
+            if colNum == 6:
+                newColumns = [
+                    f'{comp1} highest IRR diff algo/trad', 
+                    f'{comp1} algo win rate', 
+                    f'{comp1} algo avg IRR', 
+                    f'{comp1} trad avg IRR', 
+                    f'{comp1} highest IRR diff algo/B&H', 
+                    f'{comp1} highest IRR diff trad/B&H'
+                    ]
+            else:
+                newColumns = [
+                    f'highest IRR diff of algo {comp1}/{comp2}', 
+                    f'highest IRR diff of trad {comp1}/{comp2}', 
+                    f'{comp1} algo win rate', 
+                    f'{comp1} trad win rate', 
+                    ]
+            for t in newColumns:
                 self.tableColumns.append(t)
             
         def add_info(self, col1, col2, dataNum):
-            data = [max(self.IRRData[self.df.columns[col1]]) - max(self.IRRData[self.df.columns[col2]]),
+            if dataNum == 6:
+                data = [
+                    max(self.IRRData[self.df.columns[col1]]) - max(self.IRRData[self.df.columns[col2]]),
                     len([i for i, j in zip(self.IRRData[self.df.columns[col1]], self.IRRData[self.df.columns[col2]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100,
                     np.average(self.IRRData[self.df.columns[col1]]),
                     np.average(self.IRRData[self.df.columns[col2]]),
                     max(self.IRRData[self.df.columns[col1]]) - self.df.at['B&H', self.df.columns[col1]],
-                    max(self.IRRData[self.df.columns[col2]]) - self.df.at['B&H', self.df.columns[col2]]]
-            for d in data[:dataNum]:
+                    max(self.IRRData[self.df.columns[col2]]) - self.df.at['B&H', self.df.columns[col2]]
+                    ]
+            else:
+                data = [
+                    max(self.IRRData[self.df.columns[col1]]) - max(self.IRRData[self.df.columns[col2]]),
+                    max(self.IRRData[self.df.columns[col1+1]]) - max(self.IRRData[self.df.columns[col2 + 1]]),
+                    len([i for i, j in zip(self.IRRData[self.df.columns[col1]], self.IRRData[self.df.columns[col2]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100,
+                    len([i for i, j in zip(self.IRRData[self.df.columns[col1 + 1]], self.IRRData[self.df.columns[col2 + 1]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100,
+                    ]
+            for d in data:
                 self.cellData.append(d)
         
         def draw(self):
             #設定每個bar的顏色及bar的最終寬度
             colorDict = dict(zip(self.df.columns, split_testIRR_draw.barColorSet))
             if len(self.df.columns) < 3:
-                totalBarWidth = 0.5
+                split_testIRR_draw.totalBarWidth = 0.5
             #將過長的df切開
             if len(self.df.columns) < 5:
                 figCnt = 2
+                grid = [0.125, 1, 1]
             else:
                 figCnt = 3
+                grid = [0.125, 1, 1, 1]
             dfCuttedIndex = list()
             for i in range(figCnt):
                 dfCuttedIndex.append(floor(len(self.df) / figCnt) * i)
             dfCuttedIndex.append(len(self.df))
             #開始畫圖
-            fig, axs = plt.subplots(figCnt, sharey = True)
-            # gs = GridSpec()
-            for splitIndex in range(len(dfCuttedIndex) - 1):
+            
+            fig, axs = plt.subplots(
+                figCnt+1, 
+                sharey = True, 
+                gridspec_kw={'height_ratios': grid}, 
+                # constrained_layout = True
+                )
+            # gs = fig.add_gridspec(20, 1)
+            
+            #設定top table跟bottom table
+            dataColLen = 6
+            for i in range(0, dataColLen * self.techNum, dataColLen):
+                tmpTableDf = self.tableDf.iloc[:, i:i+dataColLen]
+                topTable = axs[0].table(
+                    colLabels = tmpTableDf.columns, 
+                    cellText = tmpTableDf.values, 
+                    # loc = 'best', 
+                    cellLoc = 'center', 
+                    colColours = ['silver'] * (len(tmpTableDf.columns)), 
+                    bbox = [0, 1 - i * 0.25, 1, 1.2]
+                    )
+                # for colIndex in range(len(tableDf.columns)):  #設定cell text顏色
+                #     topTable[0, colIndex].get_text().set_color('white')
+                # topTable.auto_set_column_width(col = list(range(len(self.tableDf.columns))))
+                topTable.auto_set_font_size(False)
+                topTable.set_fontsize('medium')  # Valid font size are xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
+            finalCompareLen = 4
+            nextColStart = (i + dataColLen) * 0.25
+            for i in range(self.techNum - 1):
+                startCol = dataColLen * self.techNum + i * finalCompareLen
+                endCol = startCol + finalCompareLen
+                tmpTableDf = self.tableDf.iloc[ : , startCol : endCol]
+                topTable = axs[0].table(
+                    colLabels = tmpTableDf.columns, 
+                    cellText = tmpTableDf.values, 
+                    # loc = 'best', 
+                    cellLoc = 'center', 
+                    colColours = ['silver'] * (len(tmpTableDf.columns)), 
+                    bbox = [0, 1 - nextColStart, 1, 1.2]
+                    )
+            axs[0].axis('off')
+            # axs[0].axis('tight')
+            
+            for splitIndex in range(0, len(dfCuttedIndex) - 1):
+                thisAx = axs[splitIndex + 1]
                 subDf = self.df.iloc[dfCuttedIndex[splitIndex]: dfCuttedIndex[splitIndex + 1]]
-                plot = subDf.plot.bar(ax = axs[splitIndex], width = split_testIRR_draw.totalBarWidth, rot = 0, color = colorDict, edgecolor = 'black', linewidth = 0.2, legend = None)
+                plot = subDf.plot.bar(
+                    ax = thisAx, 
+                    width = split_testIRR_draw.totalBarWidth, 
+                    rot = 0, 
+                    color = colorDict, 
+                    edgecolor = 'black', 
+                    linewidth = 0.2, 
+                    legend = None
+                    )
                 #找出B&H位置，將B&H的bar變成紅色
                 BHIndex = [i for i, x in enumerate(subDf.index) if x == 'B&H']
                 if not len(BHIndex):
-                    axIndexForLegned = splitIndex
+                    axIndexForLegned = splitIndex + 1
                 if len(BHIndex):
                     for barIndex, barContainer in enumerate(plot.containers):
                         if barIndex == 0:
@@ -178,44 +254,23 @@ class split_testIRR_draw:
                         barContainer[BHIndex[0]].set_x(barX)
                         barContainer[BHIndex[0]].set_edgecolor('black')
                 #設定其他屬性
-                axs[splitIndex].grid(axis = 'y')
-                axs[splitIndex].yaxis.set_major_formatter(mtick.PercentFormatter())  #把座標變成%
-                axs[splitIndex].set_xticklabels(subDf.index, rotation = 45)
-                axs[splitIndex].set(xlabel = "", ylabel = "")
-                axs[splitIndex].tick_params(axis = 'both', labelsize = split_testIRR_draw.allFontSize)  #設定xlabel ylabel字形大小
+                thisAx.grid(axis = 'y')
+                thisAx.yaxis.set_major_formatter(mtick.PercentFormatter())  #把座標變成%
+                thisAx.locator_params(axis = 'y', nbins = 10)
+                thisAx.set_xticklabels(subDf.index, rotation = 45)
+                thisAx.set(xlabel = "", ylabel = "")
+                thisAx.tick_params(axis = 'both', labelsize = split_testIRR_draw.allFontSize)  #設定xlabel ylabel字形大小
                 #設定lable顏色
-                for cellIndex in axs[splitIndex].get_xticklabels():
+                for cellIndex in thisAx.get_xticklabels():
                     txt = cellIndex.get_text()
                     for slideGroup in split_testIRR_draw.slidingLableClrList:
                         if txt in slideGroup[0]:
                             plt.setp(cellIndex, bbox = dict(boxstyle = 'round', edgecolor = 'none', alpha = 1, facecolor = slideGroup[1]))
                             break
-                #設定top table跟bottom table
-                if splitIndex == 0:
-                    if len(subDf.columns) < 5:
-                        myBox = [0, 1.05, 1, 0.22]
-                    else:
-                        myBox = [0, 1.05, 1, 0.4]
-                    celBGC = [['gainsboro'] * 6, ['silver'] * 4, ['darkgray'] * 4]
-                    colClrs = list()
-                    for i in range(figCnt):
-                        for clr in celBGC[i]:
-                            colClrs.append(clr)
-                    topTable = axs[splitIndex].table(colLabels = self.tableDf.columns, 
-                                                        cellText = self.tableDf.values, 
-                                                        loc = 'top', 
-                                                        cellLoc = 'center', 
-                                                        # colColours = colClrs, 
-                                                        bbox = myBox)
-                    # for colIndex in range(len(tableDf.columns)):  #設定cell text顏色
-                    #     topTable[0, colIndex].get_text().set_color('white')
-                    topTable.auto_set_column_width(col = list(range(len(self.tableDf.columns))))
-                    topTable.auto_set_font_size(False)
-                    topTable.set_fontsize('medium')  # Valid font size are xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
-                if len(self.df.columns) > 4:
-                    continue
-                    chooseDf = windowChooseDf[windowChooseDf.columns[dfCuttedIndex[splitIndex]: dfCuttedIndex[splitIndex + 1]]]
-                    table = axs[splitIndex].table(cellText = chooseDf.values, loc = 'bottom', cellLoc = 'center', rowLabels = [chooseDf.index[0], chooseDf.index[1]], bbox = [0, 0, 1, 0.2])
+                # if len(self.df.columns) > 4:
+                #     continue
+                #     chooseDf = windowChooseDf[windowChooseDf.columns[dfCuttedIndex[splitIndex]: dfCuttedIndex[splitIndex + 1]]]
+                #     table = axs[splitIndex].table(cellText = chooseDf.values, loc = 'bottom', cellLoc = 'center', rowLabels = [chooseDf.index[0], chooseDf.index[1]], bbox = [0, 0, 1, 0.2])
             handles, labels = axs[axIndexForLegned].get_legend_handles_labels()
             fig.legend(handles, labels, loc = 'upper center', 
                        bbox_to_anchor = (0.5, 0), fancybox = True, 
