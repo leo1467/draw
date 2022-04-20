@@ -1,4 +1,6 @@
 from math import floor
+from math import ceil
+from posixpath import split
 from turtle import color
 from matplotlib import gridspec
 import matplotlib.pyplot as plt
@@ -41,6 +43,7 @@ class split_testIRR_draw:
             processACompany = self.ProcessACompany(FileIndex, file, self.firstTechName)
             if draw:
                 processACompany.draw()
+            break
         os.chdir(root)
         for dfIndex, eachDf in enumerate(self.tables):
             if dfIndex == 0:
@@ -187,53 +190,74 @@ class split_testIRR_draw:
             dfCuttedIndex.append(len(self.df))
             #開始畫圖
             
-            fig, axs = plt.subplots(
-                figCnt+1, 
+            fig, axes = plt.subplots(
+                # figCnt+1, 
                 sharey = True, 
-                gridspec_kw={'height_ratios': grid}, 
-                # constrained_layout = True
+                # gridspec_kw={'height_ratios': grid}, 
+                constrained_layout = True
                 )
-            # gs = fig.add_gridspec(20, 1)
+            gridNum = 25
+            gs = fig.add_gridspec(gridNum, 1)
+            # axes[0].axis('off')
+            axes.axis('off')
             
             #設定top table跟bottom table
+            
+            # inner = gridspec.GridSpecFromSubplotSpec(self.techNum*2-1, 1,
+            #         subplot_spec=axes[0], wspace=0, hspace=0)
+            
             dataColLen = 6
-            for i in range(0, dataColLen * self.techNum, dataColLen):
-                tmpTableDf = self.tableDf.iloc[:, i:i+dataColLen]
-                topTable = axs[0].table(
+            for i, j in zip(range(0, dataColLen * self.techNum, dataColLen), range(self.techNum)):
+                tableAx = fig.add_subplot(gs[j, : ])
+                tmpTableDf = self.tableDf.iloc[ : , i : i + dataColLen]
+                topTable = plt.table(
                     colLabels = tmpTableDf.columns, 
                     cellText = tmpTableDf.values, 
                     # loc = 'best', 
                     cellLoc = 'center', 
                     colColours = ['silver'] * (len(tmpTableDf.columns)), 
-                    bbox = [0, 1 - i * 0.25, 1, 1.2]
+                    bbox = [0, 1, 1, 2]
                     )
                 # for colIndex in range(len(tableDf.columns)):  #設定cell text顏色
                 #     topTable[0, colIndex].get_text().set_color('white')
                 # topTable.auto_set_column_width(col = list(range(len(self.tableDf.columns))))
                 topTable.auto_set_font_size(False)
                 topTable.set_fontsize('medium')  # Valid font size are xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
+                tableAx.axis('off')
+                tableAx.axis('tight')
+            
             finalCompareLen = 4
-            nextColStart = (i + dataColLen) * 0.25
             for i in range(self.techNum - 1):
+                tableAx = fig.add_subplot(gs[self.techNum + i, : ])
                 startCol = dataColLen * self.techNum + i * finalCompareLen
                 endCol = startCol + finalCompareLen
                 tmpTableDf = self.tableDf.iloc[ : , startCol : endCol]
-                topTable = axs[0].table(
+                topTable = plt.table(
                     colLabels = tmpTableDf.columns, 
                     cellText = tmpTableDf.values, 
                     # loc = 'best', 
                     cellLoc = 'center', 
                     colColours = ['silver'] * (len(tmpTableDf.columns)), 
-                    bbox = [0, 1 - nextColStart, 1, 1.2]
+                    bbox = [0, 1, 1, 2]
                     )
-            axs[0].axis('off')
-            # axs[0].axis('tight')
-            
-            for splitIndex in range(0, len(dfCuttedIndex) - 1):
-                thisAx = axs[splitIndex + 1]
+                topTable.auto_set_font_size(False)
+                topTable.set_fontsize('medium')  # Valid font size are xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
+                tableAx.axis('off')
+                tableAx.axis('tight')
+            # plt.show()
+            startGrid = self.techNum * 2 - 1
+            figJump = ceil((gridNum - startGrid) / figCnt)
+            figGrid = [startGrid]
+            for i in range(figCnt):
+                figGrid.append(figGrid[i] + figJump)
+            barAxes = []
+            for splitIndex in range(figCnt):
+                # barAx = axes[splitIndex+1]
+                barAx = fig.add_subplot(gs[figGrid[splitIndex]: figGrid[splitIndex + 1], :])
+                barAxes.append(barAx)
                 subDf = self.df.iloc[dfCuttedIndex[splitIndex]: dfCuttedIndex[splitIndex + 1]]
                 plot = subDf.plot.bar(
-                    ax = thisAx, 
+                    ax = barAx, 
                     width = split_testIRR_draw.totalBarWidth, 
                     rot = 0, 
                     color = colorDict, 
@@ -244,7 +268,7 @@ class split_testIRR_draw:
                 #找出B&H位置，將B&H的bar變成紅色
                 BHIndex = [i for i, x in enumerate(subDf.index) if x == 'B&H']
                 if not len(BHIndex):
-                    axIndexForLegned = splitIndex + 1
+                    axIndexForLegned = splitIndex
                 if len(BHIndex):
                     for barIndex, barContainer in enumerate(plot.containers):
                         if barIndex == 0:
@@ -254,14 +278,14 @@ class split_testIRR_draw:
                         barContainer[BHIndex[0]].set_x(barX)
                         barContainer[BHIndex[0]].set_edgecolor('black')
                 #設定其他屬性
-                thisAx.grid(axis = 'y')
-                thisAx.yaxis.set_major_formatter(mtick.PercentFormatter())  #把座標變成%
-                thisAx.locator_params(axis = 'y', nbins = 10)
-                thisAx.set_xticklabels(subDf.index, rotation = 45)
-                thisAx.set(xlabel = "", ylabel = "")
-                thisAx.tick_params(axis = 'both', labelsize = split_testIRR_draw.allFontSize)  #設定xlabel ylabel字形大小
+                barAx.grid(axis = 'y')
+                barAx.yaxis.set_major_formatter(mtick.PercentFormatter())  #把座標變成%
+                barAx.locator_params(axis = 'y', nbins = 10)
+                barAx.set_xticklabels(subDf.index, rotation = 45)
+                barAx.set(xlabel = "", ylabel = "")
+                barAx.tick_params(axis = 'both', labelsize = split_testIRR_draw.allFontSize)  #設定xlabel ylabel字形大小
                 #設定lable顏色
-                for cellIndex in thisAx.get_xticklabels():
+                for cellIndex in barAx.get_xticklabels():
                     txt = cellIndex.get_text()
                     for slideGroup in split_testIRR_draw.slidingLableClrList:
                         if txt in slideGroup[0]:
@@ -271,21 +295,25 @@ class split_testIRR_draw:
                 #     continue
                 #     chooseDf = windowChooseDf[windowChooseDf.columns[dfCuttedIndex[splitIndex]: dfCuttedIndex[splitIndex + 1]]]
                 #     table = axs[splitIndex].table(cellText = chooseDf.values, loc = 'bottom', cellLoc = 'center', rowLabels = [chooseDf.index[0], chooseDf.index[1]], bbox = [0, 0, 1, 0.2])
-            handles, labels = axs[axIndexForLegned].get_legend_handles_labels()
+            handles, labels = barAxes[axIndexForLegned].get_legend_handles_labels()
             fig.legend(handles, labels, loc = 'upper center', 
                        bbox_to_anchor = (0.5, 0), fancybox = True, 
                        shadow = False, ncol = len(self.df.columns), 
                        fontsize = split_testIRR_draw.allFontSize)
             # plt.legend(loc = 'upper center', bbox_to_anchor = (0.5, -0.3), fancybox = True, shadow = False, ncol = len(df.columns), fontsize = allFontSize)
-            fig.tight_layout()
-            fig.suptitle(self.company + '_' + self.firstTechName + '_IRR_rank', y = 1.02, fontsize = split_testIRR_draw.allFontSize + 5)
+            # fig.tight_layout()
+            fig.suptitle(self.company + '_' + self.firstTechName + '_IRR_rank', 
+                         y = 1.04, 
+                         fontsize = split_testIRR_draw.allFontSize + 5)
+            # plt.subplot_tool()
+            # plt.show()
             plt.savefig(self.company + '_all_IRR'  + '.png', dpi = 300, bbox_inches = 'tight')
             plt.cla()
             plt.close(fig)
 
 if __name__ == '__main__':
     # draw_hold()
-    x = split_testIRR_draw('test_IRR_IRR_sorted_SMA_2' + '.csv', 1, 1)
+    x = split_testIRR_draw('test_IRR_IRR_sorted_SMA_RSI_3' + '.csv', 1, 1)
     
 # def split_testIRR_draw(fileName, split, draw):
 #     print(fileName)
