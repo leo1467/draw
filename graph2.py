@@ -43,7 +43,7 @@ class split_testIRR_draw:
             os.chdir(self.dirName)
         self.allIRRFile = [i for i in glob.glob(f"*{file_extension}")]
         for FileIndex, file in enumerate(self.allIRRFile):
-            processACompany = self.ProcessACompany(FileIndex, file, self.firstTechName)
+            processACompany = self.ProcessACompany(FileIndex, file)
             if draw:
                 processACompany.draw()
             # break
@@ -60,63 +60,69 @@ class split_testIRR_draw:
         print(self.fileName)
         fileNameList = fileName.split('.')[0].split('_')
         split_testIRR_draw.allTitle = '_'.join(fileNameList[fileNameList.index('sorted') + 1: ])
-        self.firstTechName = self.allTitle.split('_')[0]
         self.dirName = 'split_' + fileName.split('.')[0]
         if not os.path.isdir(self.dirName):
             os.mkdir(self.dirName)
         
     def split(self):
-        oriIRRFile = pd.read_csv(self.fileName)
-        if True in oriIRRFile.columns.str.contains('^Unnamed'):
-            oriIRRFile = oriIRRFile.loc[: , ~oriIRRFile.columns.str.contains('^Unnamed')]
-            oriIRRFile.to_csv(self.fileName, index = None)
-        oriIRRFile = oriIRRFile.T.reset_index().T.reset_index(drop = True)
+        self.IRRdf = pd.read_csv(self.fileName)
+        if True in self.IRRdf.columns.str.contains('^Unnamed'):
+            self.IRRdf = self.IRRdf.loc[: , ~self.IRRdf.columns.str.contains('^Unnamed')]
+            self.IRRdf.to_csv(self.fileName, index = None)
+        self.IRRdf = self.IRRdf.T.reset_index().T.reset_index(drop = True)
         os.chdir(self.dirName)
         index = []
-        for row, content in enumerate(oriIRRFile[0]):
+        for row, content in enumerate(self.IRRdf[0]):
             if content[0] == '=':
                 index.append(row)
-        index.append(len(oriIRRFile))
+        index.append(len(self.IRRdf))
         for cellIndex in range(len(index) - 1):
-            companyName = oriIRRFile.at[index[cellIndex], oriIRRFile.columns[0]].replace('=', '')
-            oriIRRFile.at[index[cellIndex], oriIRRFile.columns[0]] = 'window'
-            oriIRRFile[index[cellIndex]: index[cellIndex + 1]].to_csv(companyName + '_IRR.csv', header = None, index = None)
+            companyName = self.IRRdf.at[index[cellIndex], self.IRRdf.columns[0]].replace('=', '')
+            self.IRRdf.at[index[cellIndex], self.IRRdf.columns[0]] = 'window'
+            self.IRRdf[index[cellIndex]: index[cellIndex + 1]].to_csv(companyName + '_IRR.csv', header = None, index = None)
     
     class ProcessACompany:
-        def __init__(self, FileIndex, file, firstTechName):
+        def __init__(self, FileIndex, file):
             self.table = []
             self.tableColumns = list()
             self.cellData = list()
             self.IRRData = dict()
-            self.firstTechName = firstTechName
             print(file)
             if file.split('.')[1] == 'csv':
-                #df前處理
-                self.company = file.split('_')[0]
-                self.df = pd.read_csv(file, index_col = 0)
-                # df.rename(columns = {df.columns[0]: 'window'}, inplace = True)
-                self.techNum = 0
-                for col in self.df.columns:
-                    if col.split(' ')[-1] == 'algo':
-                        self.techNum += 1
-                for colIndex in self.df.columns:
-                    for rowIndex in self.df.index:
-                        self.df.at[rowIndex, colIndex] *= 100
+                self.process_df(file)
+                self.find_techNames()
                 self.process_IRRFile(FileIndex, file)
-    
+                
+        def process_df(self, file):
+            #df前處理
+            self.company = file.split('_')[0]
+            self.df = pd.read_csv(file, index_col = 0)
+            # df.rename(columns = {df.columns[0]: 'window'}, inplace = True)
+            for colIndex in self.df.columns:
+                for rowIndex in self.df.index:
+                    self.df.at[rowIndex, colIndex] *= 100
+        
+        def find_techNames(self):
+            self.techNames = list()
+            for colIndex in range(len(self.df.columns)):
+                self.techNames.append(self.df.columns[colIndex].split(' ')[0])
+            if len(self.techNames[0].split('_')) > 1:
+                self.techNames = [y for x, y in enumerate(self.techNames[:-5]) if x % 2 == 0]
+            else:
+                self.techNames = [y for x, y in enumerate(self.techNames) if x % 2 == 0]
+            self.techNum = len(self.techNames)
+            
         def process_IRRFile(self, FileIndex, file):
             # table資料
             for colIndex, col in enumerate(self.df.columns):
                 self.IRRData.update({col: np.array([x for i, x in enumerate(self.df[col]) if self.df.index[i] != 'B&H'])})
-            self.add_col(self.firstTechName, '', 6)
+            self.add_col(self.techNames[0], '', 6)
             self.add_info(0, 1, 6)
             if len(self.df.columns) > 2:
-                self.secndTechName = self.df.columns[2].split(" ")[0]
-                self.add_col(self.secndTechName, '', 6)
+                self.add_col(self.techNames[1], '', 6)
                 self.add_info(2, 3, 6)
                 if len(self.df.columns) > 4:
-                    self.thirdTechName = self.df.columns[4].split(" ")[0]
-                    self.add_col(self.thirdTechName, '', 6)
+                    self.add_col(self.techNames[2], '', 6)
                     self.add_info(4, 5, 6)
                     windowChoose = list()
                     windowChoose.append(self.df[self.df.columns[6]] / self.df['window num'] * 100)
@@ -126,10 +132,10 @@ class split_testIRR_draw:
                     self.windowChooseDf = pd.DataFrame(windowChoose, columns = [self.df.index], index = [self.df.columns[6], self.df.columns[8]])
                     self.df = self.df.drop(columns = [col for col in self.df.columns[-5: ]])
             if len(self.df.columns) > 2:
-                self.add_col(self.firstTechName, self.secndTechName, 4)
+                self.add_col(self.techNames[0], self.techNames[1], 4)
                 self.add_info(0, 2, 4)
                 if len(self.df.columns) > 4:
-                    self.add_col(self.firstTechName, self.thirdTechName, 4)
+                    self.add_col(self.techNames[0], self.techNames[2], 4)
                     self.add_info(0, 4, 4)
             self.cellData = ['%.2f' % elem for elem in self.cellData]
             self.cellData = np.array([[elem + '%'] for elem in self.cellData])
@@ -216,13 +222,14 @@ class split_testIRR_draw:
                 tableAx.axis('off')
                 self.draw_table(tableAx, i, i + dataColLen)
             
-            finalCompareLen = 4
-            for i in range(self.techNum - 1):
-                tableAx = fig.add_subplot(gs[self.techNum + i, : ])
-                tableAx.axis('off')
-                startCol = dataColLen * self.techNum + i * finalCompareLen
-                endCol = startCol + finalCompareLen
-                self.draw_table(tableAx, startCol, endCol)
+            if len(self.techNames) > 1:
+                finalCompareLen = 4
+                for i in range(self.techNum - 1):
+                    tableAx = fig.add_subplot(gs[self.techNum + i, : ])
+                    tableAx.axis('off')
+                    startCol = dataColLen * self.techNum + i * finalCompareLen
+                    endCol = startCol + finalCompareLen
+                    self.draw_table(tableAx, startCol, endCol)
                 
             #找出plot bar要佔用哪些grid
             startGrid = self.techNum * 2 - 1
@@ -269,7 +276,7 @@ class split_testIRR_draw:
                 barAx.yaxis.set_major_formatter(mtick.PercentFormatter())  #把座標變成%
                 barAx.locator_params(axis = 'y', nbins = 10)
                 barAx.set_xticklabels(subDf.index, rotation = 45)
-                barAx.set(xlabel = "", ylabel = "")
+                barAx.set(xlabel = '', ylabel = '')
                 barAx.tick_params(axis = 'both', labelsize = split_testIRR_draw.allFontSize)  #設定xlabel ylabel字形大小
                 
                 #設定lable顏色
@@ -291,7 +298,8 @@ class split_testIRR_draw:
                 fancybox = True, shadow = False, 
                 ncol = len(self.df.columns), 
                 fontsize = split_testIRR_draw.allFontSize)
-            fig.suptitle(self.company + '_' + split_testIRR_draw.allTitle + '_IRR_rank', 
+            titleTechNames = [i + '"' for i in ['"' + j for j in self.techNames]]
+            fig.suptitle(self.company + ' ' +  ' '.join(titleTechNames) + ' IRR rank', 
                          y = 1.07, 
                          fontsize = split_testIRR_draw.allFontSize + 5)
             # fig.subplots_adjust(hspace=1)
@@ -312,13 +320,13 @@ class split_testIRR_draw:
             #     topTable[0, colIndex].get_text().set_color('white')
             # topTable.auto_set_column_width(col = list(range(len(self.tableDf.columns))))
             topTable.auto_set_font_size(False)
-            topTable.set_fontsize('medium')  # Valid font size are xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
+            topTable.set_fontsize('large')  # Valid font size are xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
 
 
 if __name__ == '__main__':
     # draw_hold()
     x = split_testIRR_draw('test_IRR_IRR_sorted_SMA_RSI_3' + '.csv', 1, 1)
-    
+
 # def split_testIRR_draw(fileName, split, draw):
 #     print(fileName)
 #     fileNameList = fileName.split('.')[0].split('_')
