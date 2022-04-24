@@ -60,6 +60,7 @@ class split_testIRR_draw:
         print(self.fileName)
         fileNameList = fileName.split('.')[0].split('_')
         split_testIRR_draw.allTitle = '_'.join(fileNameList[fileNameList.index('sorted') + 1: ])
+        split_testIRR_draw.trainOrTest = fileNameList[0]
         self.dirName = 'split_' + fileName.split('.')[0]
         if not os.path.isdir(self.dirName):
             os.mkdir(self.dirName)
@@ -146,6 +147,7 @@ class split_testIRR_draw:
         def add_col(self, comp1, comp2, colNum):
             if colNum == 6:
                 newColumns = [
+                    f'{comp1} highest algo IRR',
                     f'{comp1} highest IRR diff algo/trad', 
                     f'{comp1} algo win rate', 
                     f'{comp1} algo avg IRR', 
@@ -166,6 +168,7 @@ class split_testIRR_draw:
         def add_info(self, col1, col2, dataNum):
             if dataNum == 6:
                 data = [
+                    max(self.IRRData[self.df.columns[col1]]),
                     max(self.IRRData[self.df.columns[col1]]) - max(self.IRRData[self.df.columns[col2]]),
                     len([i for i, j in zip(self.IRRData[self.df.columns[col1]], self.IRRData[self.df.columns[col2]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100,
                     np.average(self.IRRData[self.df.columns[col1]]),
@@ -201,9 +204,11 @@ class split_testIRR_draw:
             
             #設定grid資訊
             gridNum = 25
-            if figCnt == 2:
+            if self.techNum == 1:
+                hspace = -0.9
+            elif self.techNum == 2:
                 hspace = -0.6
-            elif figCnt == 3:
+            elif self.techNum == 3:
                 hspace = -0.25
             gs = fig.add_gridspec(
                 gridNum, 1, 
@@ -299,7 +304,7 @@ class split_testIRR_draw:
                 ncol = len(self.df.columns), 
                 fontsize = split_testIRR_draw.allFontSize)
             titleTechNames = [i + '"' for i in ['"' + j for j in self.techNames]]
-            fig.suptitle(self.company + ' ' +  ' '.join(titleTechNames) + ' IRR rank', 
+            fig.suptitle(self.company + " " + split_testIRR_draw.trainOrTest + ' ' +  ' '.join(titleTechNames) + ' IRR rank', 
                          y = 1.07, 
                          fontsize = split_testIRR_draw.allFontSize + 5)
             # fig.subplots_adjust(hspace=1)
@@ -325,7 +330,7 @@ class split_testIRR_draw:
 
 if __name__ == '__main__':
     # draw_hold()
-    x = split_testIRR_draw('test_IRR_IRR_sorted_SMA_RSI_3' + '.csv', 1, 1)
+    x = split_testIRR_draw('train_IRR_IRR_sorted_SMA_2' + '.csv', 1, 0)
 
 # def split_testIRR_draw(fileName, split, draw):
 #     print(fileName)
