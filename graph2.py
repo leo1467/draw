@@ -112,32 +112,31 @@ class split_testIRR_draw:
             else:
                 self.techNames = [y for x, y in enumerate(self.techNames) if x % 2 == 0]
             self.techNum = len(self.techNames)
+            self.mixedTech = (lambda x:True if len(x.split('_')) > 1 else False)(self.techNames[0])
             
         def process_IRRFile(self, FileIndex, file):
             # table資料
             for colIndex, col in enumerate(self.df.columns):
                 self.IRRData.update({col: np.array([x for i, x in enumerate(self.df[col]) if self.df.index[i] != 'B&H'])})
-            self.add_col(self.techNames[0], '', 6)
-            self.add_info(0, 1, 6)
-            if len(self.df.columns) > 2:
-                self.add_col(self.techNames[1], '', 6)
-                self.add_info(2, 3, 6)
-                if len(self.df.columns) > 4:
-                    self.add_col(self.techNames[2], '', 6)
-                    self.add_info(4, 5, 6)
-                    windowChoose = list()
-                    windowChoose.append(self.df[self.df.columns[6]] / self.df['window num'] * 100)
-                    windowChoose.append(self.df[self.df.columns[8]] / self.df['window num'] * 100)
-                    for i in range(len(windowChoose)):
-                        windowChoose[i] = ['%.2f' % elem + '%' for elem in windowChoose[i]]
-                    self.windowChooseDf = pd.DataFrame(windowChoose, columns = [self.df.index], index = [self.df.columns[6], self.df.columns[8]])
-                    self.df = self.df.drop(columns = [col for col in self.df.columns[-5: ]])
-            if len(self.df.columns) > 2:
-                self.add_col(self.techNames[0], self.techNames[1], 4)
-                self.add_info(0, 2, 4)
-                if len(self.df.columns) > 4:
-                    self.add_col(self.techNames[0], self.techNames[2], 4)
-                    self.add_info(0, 4, 4)
+            
+            for i in range(self.techNum):
+                self.add_col(self.techNames[i], '', 6)
+                self.add_info(i * 2, i * 2 + 1, 6)
+            
+            if self.techNum > 1:
+                for techIndex, row in zip(range(1, self.techNum), range(2, self.techNum * 2, 2)):
+                    self.add_col(self.techNames[0], self.techNames[techIndex], 4)
+                    self.add_info(0, row, 4)
+                    
+            if self.mixedTech and len(self.df.columns) > self.techNum * 2:
+                windowChoose = list()
+                for techIndex, col in zip(range(1, self.techNum), range(self.techNum * 2, len(self.df.columns), 2)):
+                    windowChoose.append(self.df[self.df.columns[col]] / self.df['window num'] * 100)
+                for i in range(len(windowChoose)):
+                    windowChoose[i] = ['%.2f' % elem + '%' for elem in windowChoose[i]]
+                self.windowChooseDf = pd.DataFrame(windowChoose, columns = [self.df.index], index = [self.techNames[1 : ]])
+                self.df = self.df.drop(columns = [col for col in self.df.columns[self.techNum * 2: ]])
+            
             self.cellData = ['%.2f' % elem for elem in self.cellData]
             self.cellData = np.array([[elem + '%'] for elem in self.cellData])
             self.tableDf = pd.DataFrame(self.cellData.reshape(1, len(self.tableColumns)), columns = self.tableColumns)
