@@ -1,3 +1,4 @@
+from fileinput import filename
 from math import floor
 from math import ceil
 import matplotlib.pyplot as plt
@@ -20,6 +21,7 @@ class split_testIRR_draw:
                            [['4W4', '4W3', '4W2', '4W1', '3W3', '3W2', '3W1', '2W2', '2W1', '1W1'], 'darkgoldenrod']]
     #設定bar屬性
     barColorSet = ['steelblue', 'darkorange', 'paleturquoise', 'wheat', 'lightcyan', 'lightyellow']
+    BHColor = 'r'
     totalBarWidth = 0.80
     #儲存全部table資料
     tables = []
@@ -36,7 +38,8 @@ class split_testIRR_draw:
     allFontSize = 10
     
     def __init__(self, fileName, split, draw):
-        self.process_fileName_dir(fileName)
+        self.fileName = fileName + '.csv'
+        print(self.fileName)
         if split:
             self.split()
         else:
@@ -54,19 +57,10 @@ class split_testIRR_draw:
                 eachDf.to_csv(fileName.split('.')[0] + '_tables.csv')
             else:
                 eachDf.to_csv(fileName.split('.')[0] + '_tables.csv', mode = 'a', header = None)
-            
-    def process_fileName_dir(self, fileName):
-        self.fileName = fileName
-        print(self.fileName)
-        fileNameList = fileName.split('.')[0].split('_')
-        split_testIRR_draw.allTitle = '_'.join(fileNameList[fileNameList.index('sorted') + 1: ])
-        split_testIRR_draw.trainOrTest = fileNameList[0]
-        self.dirName = 'split_' + fileName.split('.')[0]
-        if not os.path.isdir(self.dirName):
-            os.mkdir(self.dirName)
         
     def split(self):
-        self.IRRdf = pd.read_csv(self.fileName)
+        self.IRRdf = pd.read_csv(self.fileName, index_col = False)
+        self.process_fileName_dir()
         if True in self.IRRdf.columns.str.contains('^Unnamed'):
             self.IRRdf = self.IRRdf.loc[: , ~self.IRRdf.columns.str.contains('^Unnamed')]
             self.IRRdf.to_csv(self.fileName, index = None)
@@ -81,6 +75,14 @@ class split_testIRR_draw:
             companyName = self.IRRdf.at[index[cellIndex], self.IRRdf.columns[0]].replace('=', '')
             self.IRRdf.at[index[cellIndex], self.IRRdf.columns[0]] = 'window'
             self.IRRdf[index[cellIndex]: index[cellIndex + 1]].to_csv(companyName + '_IRR.csv', header = None, index = None)
+                
+    def process_fileName_dir(self):
+        fileNameList = self.fileName.split('.')[0].split('_')
+        split_testIRR_draw.allTitle = '_'.join(fileNameList[fileNameList.index('sorted') + 1: ])
+        split_testIRR_draw.trainOrTest = fileNameList[0]
+        self.dirName = 'split_' + self.fileName.split('.')[0]
+        if not os.path.isdir(self.dirName):
+            os.mkdir(self.dirName)
     
     class ProcessACompany:
         def __init__(self, FileIndex, file):
@@ -104,9 +106,7 @@ class split_testIRR_draw:
                     self.df.at[rowIndex, colIndex] *= 100
         
         def find_techNames(self):
-            self.techNames = list()
-            for colIndex in range(len(self.df.columns)):
-                self.techNames.append(self.df.columns[colIndex].split(' ')[0])
+            self.techNames = [name.split(' ')[0] for name in self.df.columns if 'B&H' not in name]
             if len(self.techNames[0].split('_')) > 1:
                 self.techNames = [y for x, y in enumerate(self.techNames[:-5]) if x % 2 == 0]
             else:
@@ -154,6 +154,7 @@ class split_testIRR_draw:
                     f'{comp1} highest IRR diff algo/B&H', 
                     f'{comp1} highest IRR diff trad/B&H'
                     ]
+                self.dataColLen = len(newColumns)
             else:
                 newColumns = [
                     f'highest IRR diff of algo {comp1}/{comp2}', 
@@ -161,6 +162,7 @@ class split_testIRR_draw:
                     f'algo win rate {comp1}/{comp2}', 
                     f'trad win rate {comp1}/{comp2}', 
                     ]
+                self.finalCompareLen = len(newColumns)
             for t in newColumns:
                 self.tableColumns.append(t)
             
@@ -220,19 +222,17 @@ class split_testIRR_draw:
                 )
             
             #設定top table跟bottom table
-            dataColLen = 6
-            for i, j in zip(range(0, dataColLen * self.techNum, dataColLen), range(self.techNum)):
+            for i, j in zip(range(0, self.dataColLen * self.techNum, self.dataColLen), range(self.techNum)):
                 tableAx = fig.add_subplot(gs[j, : ])
                 tableAx.axis('off')
-                self.draw_table(tableAx, i, i + dataColLen)
+                self.draw_table(tableAx, i, i + self.dataColLen)
             
             if len(self.techNames) > 1:
-                finalCompareLen = 4
                 for i in range(self.techNum - 1):
                     tableAx = fig.add_subplot(gs[self.techNum + i, : ])
                     tableAx.axis('off')
-                    startCol = dataColLen * self.techNum + i * finalCompareLen
-                    endCol = startCol + finalCompareLen
+                    startCol = self.dataColLen * self.techNum + i * self.finalCompareLen
+                    endCol = startCol + self.finalCompareLen
                     self.draw_table(tableAx, startCol, endCol)
                 
             #找出plot bar要佔用哪些grid
@@ -271,9 +271,15 @@ class split_testIRR_draw:
                         if barIndex == 0:
                             singleBarWidth = barContainer[BHIndex].get_width()
                             barX = ((barContainer[BHIndex].get_x() + (barContainer[BHIndex].get_x() + (len(subDf.columns) * singleBarWidth))) - singleBarWidth) / 2
-                        barContainer[BHIndex].set_color('r')
+                        barContainer[BHIndex].set_color(split_testIRR_draw.BHColor)
                         barContainer[BHIndex].set_x(barX)
                         barContainer[BHIndex].set_edgecolor('black')
+                
+                #如果是train，變更每個滑動視窗的B&H顏色
+                if split_testIRR_draw.trainOrTest == 'train':
+                    for singleBar in plot.containers[-1]:
+                        singleBar.set_color(split_testIRR_draw.BHColor)
+                        singleBar.set_edgecolor('black')
                 
                 #設定其他屬性
                 barAx.grid(axis = 'y')
@@ -329,7 +335,7 @@ class split_testIRR_draw:
 
 if __name__ == '__main__':
     # draw_hold()
-    x = split_testIRR_draw('train_IRR_IRR_sorted_SMA_2' + '.csv', 1, 0)
+    x = split_testIRR_draw('train_IRR_IRR_sorted_SMA_2', 1, 1)
 
 # def split_testIRR_draw(fileName, split, draw):
 #     print(fileName)
