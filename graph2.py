@@ -39,6 +39,7 @@ class split_testIRR_draw:
     
     def __init__(self, fileName, split, draw):
         self.fileName = fileName + '.csv'
+        self.dirName = 'split_' + self.fileName.split('.')[0]
         print(self.fileName)
         if split:
             self.split()
@@ -80,7 +81,6 @@ class split_testIRR_draw:
         fileNameList = self.fileName.split('.')[0].split('_')
         split_testIRR_draw.allTitle = '_'.join(fileNameList[fileNameList.index('sorted') + 1: ])
         split_testIRR_draw.trainOrTest = fileNameList[0]
-        self.dirName = 'split_' + self.fileName.split('.')[0]
         if not os.path.isdir(self.dirName):
             os.mkdir(self.dirName)
     
@@ -120,13 +120,13 @@ class split_testIRR_draw:
                 self.IRRData.update({col: np.array([x for i, x in enumerate(self.df[col]) if self.df.index[i] != 'B&H'])})
             
             for i in range(self.techNum):
-                self.add_col(self.techNames[i], '', 6)
-                self.add_info(i * 2, i * 2 + 1, 6)
+                self.add_col(self.techNames[i], '', False)
+                self.add_info(i * 2, i * 2 + 1, False)
             
             if self.techNum > 1:
                 for techIndex, row in zip(range(1, self.techNum), range(2, self.techNum * 2, 2)):
-                    self.add_col(self.techNames[0], self.techNames[techIndex], 4)
-                    self.add_info(0, row, 4)
+                    self.add_col(self.techNames[0], self.techNames[techIndex], True)
+                    self.add_info(0, row, True)
                     
             if self.mixedTech and len(self.df.columns) > self.techNum * 2:
                 windowChoose = list()
@@ -137,14 +137,13 @@ class split_testIRR_draw:
                 self.windowChooseDf = pd.DataFrame(windowChoose, columns = [self.df.index], index = [self.techNames[1 : ]])
                 self.df = self.df.drop(columns = [col for col in self.df.columns[self.techNum * 2: ]])
             
-            self.cellData = ['%.2f' % elem for elem in self.cellData]
-            self.cellData = np.array([[elem + '%'] for elem in self.cellData])
+            self.cellData = np.array([['%.2f' % elem + '%'] for elem in self.cellData])
             self.tableDf = pd.DataFrame(self.cellData.reshape(1, len(self.tableColumns)), columns = self.tableColumns)
             self.tableDf.rename(index = { 0: self.company }, inplace = True)
             split_testIRR_draw.tables.append(self.tableDf)
                 
-        def add_col(self, comp1, comp2, colNum):
-            if colNum == 6:
+        def add_col(self, comp1, comp2, techCompare):
+            if not techCompare:
                 newColumns = [
                     f'{comp1} highest algo IRR',
                     f'{comp1} highest IRR diff algo/trad', 
@@ -166,8 +165,8 @@ class split_testIRR_draw:
             for t in newColumns:
                 self.tableColumns.append(t)
             
-        def add_info(self, col1, col2, dataNum):
-            if dataNum == 6:
+        def add_info(self, col1, col2, techCompare):
+            if not techCompare:
                 data = [
                     max(self.IRRData[self.df.columns[col1]]),
                     max(self.IRRData[self.df.columns[col1]]) - max(self.IRRData[self.df.columns[col2]]),
@@ -221,12 +220,19 @@ class split_testIRR_draw:
                 # right = 0.845
                 )
             
-            #設定top table跟bottom table
+            #設定top table
+            self.tableObjs = list()
             for i, j in zip(range(0, self.dataColLen * self.techNum, self.dataColLen), range(self.techNum)):
                 tableAx = fig.add_subplot(gs[j, : ])
                 tableAx.axis('off')
                 self.draw_table(tableAx, i, i + self.dataColLen)
             
+            #比較table中不同指標誰比較大，並著色
+            if len(self.techNames) > 1:
+                for colNum in range(self.dataColLen):
+                    self.find_big_cell(colNum)
+
+            #設定比較table
             if len(self.techNames) > 1:
                 for i in range(self.techNum - 1):
                     tableAx = fig.add_subplot(gs[self.techNum + i, : ])
@@ -234,7 +240,7 @@ class split_testIRR_draw:
                     startCol = self.dataColLen * self.techNum + i * self.finalCompareLen
                     endCol = startCol + self.finalCompareLen
                     self.draw_table(tableAx, startCol, endCol)
-                
+            
             #找出plot bar要佔用哪些grid
             startGrid = self.techNum * 2 - 1
             figJump = ceil((gridNum - startGrid) / figCnt)
@@ -331,6 +337,23 @@ class split_testIRR_draw:
             # topTable.auto_set_column_width(col = list(range(len(self.tableDf.columns))))
             topTable.auto_set_font_size(False)
             topTable.set_fontsize('large')  # Valid font size are xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
+            self.tableObjs.append(topTable)
+        
+        def find_big_cell(self, colNum):
+            cellCompare = list()
+            for eachTable in self.tableObjs:
+                cellCompare.append(eachTable[1, colNum])
+            compare = -1
+            for cell in cellCompare:
+                if float(cell.get_text()._text[:-1]) > compare:
+                    compare = float(cell.get_text()._text[:-1])
+            bigCell = list()
+            for cell in cellCompare:
+                if float(cell.get_text()._text[:-1]) == compare:
+                    bigCell.append(cell)
+            for cell in bigCell:
+                cell.set_color('lime')
+                cell.set_edgecolor('black')
 
 
 if __name__ == '__main__':
