@@ -18,7 +18,9 @@ class split_testIRR_draw:
                            [['YYY2H', 'YYY2Q', 'YYY2M', 'YY2H', 'YY2Q', 'YY2M', 'YH2H', 'YH2Q', 'YH2M', 'Y2H', 'Y2Q', 'Y2M'], 'limegreen'],
                            [['H2H', 'H#', 'H2Q', 'Q2Q', 'Q#', 'H2M', 'Q2M', 'M2M', 'M#'], 'r'],
                            [['20D20', '20D15', '20D10', '20D5', '15D15', '15D10', '15D5', '10D10', '10D5', '5D5'], 'grey'],
-                           [['4W4', '4W3', '4W2', '4W1', '3W3', '3W2', '3W1', '2W2', '2W1', '1W1'], 'darkgoldenrod']]
+                           [['4W4', '4W3', '4W2', '4W1', '3W3', '3W2', '3W1', '2W2', '2W1', '1W1'], 'darkgoldenrod'],
+                           [['5D5', '5D4', '5D3', '5D2', '4D4', '4D3', '4D2', '3D3', '3D2', '2D2'], 'w']
+                           ]
     #設定bar屬性
     barColorSet = ['steelblue', 'darkorange', 'paleturquoise', 'wheat', 'lightcyan', 'lightyellow']
     BHColor = 'r'
@@ -127,7 +129,7 @@ class split_testIRR_draw:
                 for techIndex, row in zip(range(1, self.techNum), range(2, self.techNum * 2, 2)):
                     self.add_col(self.techNames[0], self.techNames[techIndex], True)
                     self.add_info(0, row, True)
-                    
+            
             if self.mixedTech and len(self.df.columns) > self.techNum * 2:
                 windowChoose = list()
                 for techIndex, col in zip(range(1, self.techNum), range(self.techNum * 2, len(self.df.columns), 2)):
@@ -137,7 +139,7 @@ class split_testIRR_draw:
                 self.windowChooseDf = pd.DataFrame(windowChoose, columns = [self.df.index], index = [self.techNames[1 : ]])
                 self.df = self.df.drop(columns = [col for col in self.df.columns[self.techNum * 2: ]])
             
-            self.cellData = np.array([['%.2f' % elem + '%'] for elem in self.cellData])
+            self.cellData = np.array([['%.2f' % elem + '%'] if type(elem) != type(str()) else [elem] for elem in self.cellData])
             self.tableDf = pd.DataFrame(self.cellData.reshape(1, len(self.tableColumns)), columns = self.tableColumns)
             self.tableDf.rename(index = { 0: self.company }, inplace = True)
             split_testIRR_draw.tables.append(self.tableDf)
@@ -152,6 +154,13 @@ class split_testIRR_draw:
                     f'{comp1} trad avg IRR', 
                     f'{comp1} highest IRR diff algo/B&H', 
                     f'{comp1} highest IRR diff trad/B&H'
+                    # f'{comp1} algo "Y" avg IRR', 
+                    # f'{comp1} algo "H" "Q" "M" avg IRR',
+                    # f'{comp1} algo "D" "W" avg IRR', 
+                    
+                    # f'{comp1} trad "Y" win', 
+                    # f'{comp1} trad "H" "Q" "M" win',
+                    # f'{comp1} trad "D" "W" win', 
                     ]
                 self.dataColLen = len(newColumns)
             else:
@@ -160,6 +169,13 @@ class split_testIRR_draw:
                     f'highest IRR diff of trad {comp1}/{comp2}', 
                     f'algo win rate {comp1}/{comp2}', 
                     f'trad win rate {comp1}/{comp2}', 
+                    f'{comp1} algo "Y" win', 
+                    f'{comp1} algo "H" "Q" "M" win',
+                    f'{comp1} algo "D" "W" win', 
+                    
+                    f'{comp1} trad "Y" win', 
+                    f'{comp1} trad "H" "Q" "M" win',
+                    f'{comp1} trad "D" "W" win', 
                     ]
                 self.finalCompareLen = len(newColumns)
             for t in newColumns:
@@ -175,6 +191,9 @@ class split_testIRR_draw:
                     np.average(self.IRRData[self.df.columns[col2]]),
                     max(self.IRRData[self.df.columns[col1]]) - self.df.at['B&H', self.df.columns[col1]],
                     max(self.IRRData[self.df.columns[col2]]) - self.df.at['B&H', self.df.columns[col2]]
+                    # np.average([IRR for w, IRR in zip(self.df.index, self.df[self.df.columns[col1]]) if w[0] == 'Y']),
+                    # np.average([IRR for w, IRR in zip(self.df.index, self.df[self.df.columns[col1]]) if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']),
+                    # np.average([IRR for w, IRR in zip(self.df.index, self.df[self.df.columns[col1]]) if 'W' in w or 'D' in w]),
                     ]
             else:
                 data = [
@@ -182,9 +201,19 @@ class split_testIRR_draw:
                     max(self.IRRData[self.df.columns[col1+1]]) - max(self.IRRData[self.df.columns[col2 + 1]]),
                     len([i for i, j in zip(self.IRRData[self.df.columns[col1]], self.IRRData[self.df.columns[col2]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100,
                     len([i for i, j in zip(self.IRRData[self.df.columns[col1 + 1]], self.IRRData[self.df.columns[col2 + 1]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100,
+                    str(len([w for w in self.df.index if self.compare(w, col1, col2) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y'])),
+                    str(len([w for w in self.df.index if self.compare(w, col1, col2) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M'])),
+                    str(len([w for w in self.df.index if self.compare(w, col1, col2) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)])),
+                    
+                    str(len([w for w in self.df.index if self.compare(w, col1+1, col2+1) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y'])),
+                    str(len([w for w in self.df.index if self.compare(w, col1+1, col2+1) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M'])),
+                    str(len([w for w in self.df.index if self.compare(w, col1+1, col2+1) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)])),
                     ]
             for d in data:
                 self.cellData.append(d)
+        
+        def compare(self, window, col1, col2):
+            return self.df.at[window, self.df.columns[col1]] > self.df.at[window, self.df.columns[col2]]
         
         def draw(self):
             #設定每個bar的顏色及bar的最終寬度
@@ -332,12 +361,20 @@ class split_testIRR_draw:
                 colColours = ['silver'] * (len(tmpTableDf.columns)), 
                 bbox = [0, 1, 1, 2]
                 )
+            self.tableObjs.append(topTable)
             # for colIndex in range(len(tableDf.columns)):  #設定cell text顏色
             #     topTable[0, colIndex].get_text().set_color('white')
             # topTable.auto_set_column_width(col = list(range(len(self.tableDf.columns))))
             topTable.auto_set_font_size(False)
             topTable.set_fontsize('large')  # Valid font size are xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
-            self.tableObjs.append(topTable)
+            if len(self.tableObjs) > self.techNum:
+                topTable.auto_set_column_width(col = list(range(len(self.tableDf.columns))))
+                for i in range(6):
+                    if i < 3:
+                        topTable[0, 4 + i].set_color('lightsteelblue')
+                    else:
+                        topTable[0, 4 + i].set_color('bisque')
+                    topTable[0, 4 + i].set_edgecolor('black')
         
         def find_big_cell(self, colNum):
             cellCompare = list()
