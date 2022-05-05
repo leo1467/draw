@@ -39,7 +39,8 @@ class split_testIRR_draw:
         )
     allFontSize = 10
     
-    def __init__(self, fileName, split, draw):
+    def __init__(self, fileName, split, drawBar, seperateTable):
+        split_testIRR_draw.seperateTable = seperateTable
         self.fileName = fileName + '.csv'
         self.dirName = 'split_' + self.fileName.split('.')[0]
         print(self.fileName)
@@ -50,7 +51,9 @@ class split_testIRR_draw:
         self.allIRRFile = [i for i in glob.glob(f"*{file_extension}")]
         for FileIndex, file in enumerate(self.allIRRFile):
             processACompany = self.ProcessACompany(FileIndex, file)
-            if draw:
+            if drawBar:
+                processACompany.draw()
+                split_testIRR_draw.seperateTable = 1
                 processACompany.draw()
             # break
         plt.close(split_testIRR_draw.fig)
@@ -122,13 +125,11 @@ class split_testIRR_draw:
                 self.IRRData.update({col: np.array([x for i, x in enumerate(self.df[col]) if self.df.index[i] != 'B&H'])})
             
             for i in range(self.techNum):
-                self.add_col(self.techNames[i], '', False)
-                self.add_info(i * 2, i * 2 + 1, False)
+                self.add_info(self.techNames[i], '', i * 2, i * 2 + 1, False)
             
             if self.techNum > 1:
                 for techIndex, row in zip(range(1, self.techNum), range(2, self.techNum * 2, 2)):
-                    self.add_col(self.techNames[0], self.techNames[techIndex], True)
-                    self.add_info(0, row, True)
+                    self.add_info(self.techNames[0], self.techNames[techIndex], 0, row, True)
             
             if self.mixedTech and len(self.df.columns) > self.techNum * 2:
                 windowChoose = list()
@@ -144,73 +145,44 @@ class split_testIRR_draw:
             self.tableDf.rename(index = { 0: self.company }, inplace = True)
             split_testIRR_draw.tables.append(self.tableDf)
                 
-        def add_col(self, comp1, comp2, techCompare):
-            if not techCompare:
-                newColumns = [
-                    f'{comp1} highest algo IRR',
-                    f'{comp1} highest IRR diff algo/trad', 
-                    f'{comp1} algo win rate', 
-                    f'{comp1} algo avg IRR', 
-                    f'{comp1} trad avg IRR', 
-                    f'{comp1} highest IRR diff algo/B&H', 
-                    f'{comp1} highest IRR diff trad/B&H'
-                    # f'{comp1} algo "Y" avg IRR', 
-                    # f'{comp1} algo "H" "Q" "M" avg IRR',
-                    # f'{comp1} algo "D" "W" avg IRR', 
-                    
-                    # f'{comp1} trad "Y" win', 
-                    # f'{comp1} trad "H" "Q" "M" win',
-                    # f'{comp1} trad "D" "W" win', 
-                    ]
-                self.dataColLen = len(newColumns)
-            else:
-                newColumns = [
-                    f'highest IRR diff of algo {comp1}/{comp2}', 
-                    f'highest IRR diff of trad {comp1}/{comp2}', 
-                    f'algo win rate {comp1}/{comp2}', 
-                    f'trad win rate {comp1}/{comp2}', 
-                    f'{comp1} algo "Y" win', 
-                    f'{comp1} algo "H" "Q" "M" win',
-                    f'{comp1} algo "D" "W" win', 
-                    
-                    f'{comp1} trad "Y" win', 
-                    f'{comp1} trad "H" "Q" "M" win',
-                    f'{comp1} trad "D" "W" win', 
-                    ]
-                self.finalCompareLen = len(newColumns)
-            for t in newColumns:
-                self.tableColumns.append(t)
-            
-        def add_info(self, col1, col2, techCompare):
+        def add_info(self, comp1, comp2, col1, col2, techCompare):
             if not techCompare:
                 data = [
-                    max(self.IRRData[self.df.columns[col1]]),
-                    max(self.IRRData[self.df.columns[col1]]) - max(self.IRRData[self.df.columns[col2]]),
-                    len([i for i, j in zip(self.IRRData[self.df.columns[col1]], self.IRRData[self.df.columns[col2]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100,
-                    np.average(self.IRRData[self.df.columns[col1]]),
-                    np.average(self.IRRData[self.df.columns[col2]]),
-                    max(self.IRRData[self.df.columns[col1]]) - self.df.at['B&H', self.df.columns[col1]],
-                    max(self.IRRData[self.df.columns[col2]]) - self.df.at['B&H', self.df.columns[col2]]
-                    # np.average([IRR for w, IRR in zip(self.df.index, self.df[self.df.columns[col1]]) if w[0] == 'Y']),
-                    # np.average([IRR for w, IRR in zip(self.df.index, self.df[self.df.columns[col1]]) if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']),
-                    # np.average([IRR for w, IRR in zip(self.df.index, self.df[self.df.columns[col1]]) if 'W' in w or 'D' in w]),
+                    [f'{comp1} highest algo IRR', max(self.IRRData[self.df.columns[col1]])],
+                    # [f'{comp1} highest IRR diff algo/trad', max(self.IRRData[self.df.columns[col1]]) - max(self.IRRData[self.df.columns[col2]])], 
+                    # [f'{comp1} algo win rate', len([i for i, j in zip(self.IRRData[self.df.columns[col1]], self.IRRData[self.df.columns[col2]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100],
+                    [f'{comp1} algo avg IRR', np.average(self.IRRData[self.df.columns[col1]])], 
+                    [f'{comp1} trad avg IRR', np.average(self.IRRData[self.df.columns[col2]])], 
+                    # [f'{comp1} highest IRR diff algo/B&H', max(self.IRRData[self.df.columns[col1]]) - self.df.at['B&H', self.df.columns[col1]]], 
+                    # [f'{comp1} highest IRR diff trad/B&H', max(self.IRRData[self.df.columns[col2]]) - self.df.at['B&H', self.df.columns[col2]]], 
+                    [f'{comp1} algo "Y" avg IRR', np.average([IRR for w, IRR in zip(self.df.index, self.df[self.df.columns[col1]]) if w[0] == 'Y'])], 
+                    [f'{comp1} algo "H" "Q" "M" avg IRR', np.average([IRR for w, IRR in zip(self.df.index, self.df[self.df.columns[col1]]) if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M'])], 
+                    [f'{comp1} algo "D" "W" avg IRR', np.average([IRR for w, IRR in zip(self.df.index, self.df[self.df.columns[col1]]) if 'W' in w or 'D' in w])], 
                     ]
+                self.dataColLen = len(data)
             else:
                 data = [
-                    max(self.IRRData[self.df.columns[col1]]) - max(self.IRRData[self.df.columns[col2]]),
-                    max(self.IRRData[self.df.columns[col1+1]]) - max(self.IRRData[self.df.columns[col2 + 1]]),
-                    len([i for i, j in zip(self.IRRData[self.df.columns[col1]], self.IRRData[self.df.columns[col2]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100,
-                    len([i for i, j in zip(self.IRRData[self.df.columns[col1 + 1]], self.IRRData[self.df.columns[col2 + 1]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100,
-                    str(len([w for w in self.df.index if self.compare(w, col1, col2) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y'])),
-                    str(len([w for w in self.df.index if self.compare(w, col1, col2) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M'])),
-                    str(len([w for w in self.df.index if self.compare(w, col1, col2) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)])),
+                    # [f'highest IRR diff of algo {comp1}/{comp2}', max(self.IRRData[self.df.columns[col1]]) - max(self.IRRData[self.df.columns[col2]])],
+                    # [f'highest IRR diff of trad {comp1}/{comp2}', max(self.IRRData[self.df.columns[col1+1]]) - max(self.IRRData[self.df.columns[col2 + 1]])],
+                    [f'algo win rate {comp1}/{comp2}', len([i for i, j in zip(self.IRRData[self.df.columns[col1]], self.IRRData[self.df.columns[col2]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100], 
+                    [f'trad win rate {comp1}/{comp2}', len([i for i, j in zip(self.IRRData[self.df.columns[col1 + 1]], self.IRRData[self.df.columns[col2 + 1]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100],
+                ]
+                self.frontLen = len(data)
+                backData = [
+                    [f'{comp1} algo "Y" win', str(len([w for w in self.df.index if self.compare(w, col1, col2) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y']))],
+                    [f'{comp1} algo "H" "Q" "M" win', str(len([w for w in self.df.index if self.compare(w, col1, col2) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']))],
+                    [f'{comp1} algo "D" "W" win', str(len([w for w in self.df.index if self.compare(w, col1, col2) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)]))],
                     
-                    str(len([w for w in self.df.index if self.compare(w, col1+1, col2+1) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y'])),
-                    str(len([w for w in self.df.index if self.compare(w, col1+1, col2+1) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M'])),
-                    str(len([w for w in self.df.index if self.compare(w, col1+1, col2+1) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)])),
+                    [f'{comp1} trad "Y" win', str(len([w for w in self.df.index if self.compare(w, col1+1, col2+1) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y']))],
+                    [f'{comp1} trad "H" "Q" "M" win', str(len([w for w in self.df.index if self.compare(w, col1+1, col2+1) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']))],
+                    [f'{comp1} trad "D" "W" win', str(len([w for w in self.df.index if self.compare(w, col1+1, col2+1) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)]))],
                     ]
-            for d in data:
-                self.cellData.append(d)
+                for i in backData:
+                    data.append(i)
+                self.finalCompareLen = len(data)
+            for row in data:
+                self.tableColumns.append(row[0])
+                self.cellData.append(row[1])
         
         def compare(self, window, col1, col2):
             return self.df.at[window, self.df.columns[col1]] > self.df.at[window, self.df.columns[col2]]
@@ -230,48 +202,23 @@ class split_testIRR_draw:
             
             #宣告fig
             fig = split_testIRR_draw.fig
+            titleTechNames = [i + '"' for i in ['"' + j for j in self.techNames]]
             
             #設定grid資訊
-            gridNum = 25
-            if self.techNum == 1:
-                hspace = -0.9
-            elif self.techNum == 2:
-                hspace = -0.6
-            elif self.techNum == 3:
-                hspace = -0.25
-            gs = fig.add_gridspec(
-                gridNum, 1, 
-                wspace = 0, 
-                hspace = hspace, 
-                top = 1, 
-                bottom = 0, 
-                # left = 0.17, 
-                # right = 0.845
-                )
+            gs, gridNum = self.set_grid(fig)
             
             #設定top table
             self.tableObjs = list()
-            for i, j in zip(range(0, self.dataColLen * self.techNum, self.dataColLen), range(self.techNum)):
-                tableAx = fig.add_subplot(gs[j, : ])
-                tableAx.axis('off')
-                self.draw_table(tableAx, i, i + self.dataColLen)
-            
-            #比較table中不同指標誰比較大，並著色
-            if len(self.techNames) > 1:
-                for colNum in range(self.dataColLen):
-                    self.find_big_cell(colNum)
-
-            #設定比較table
-            if len(self.techNames) > 1:
-                for i in range(self.techNum - 1):
-                    tableAx = fig.add_subplot(gs[self.techNum + i, : ])
-                    tableAx.axis('off')
-                    startCol = self.dataColLen * self.techNum + i * self.finalCompareLen
-                    endCol = startCol + self.finalCompareLen
-                    self.draw_table(tableAx, startCol, endCol)
+            self.draw_tables(fig, gs)
+            if split_testIRR_draw.seperateTable:
+                fig.suptitle(self.company + " " + split_testIRR_draw.trainOrTest + ' ' +  ' '.join(titleTechNames) + ' compare table', 
+                    fontsize = split_testIRR_draw.allFontSize + 5)
+                fig.savefig(self.company + '_table'  + '.png', dpi = fig.dpi, bbox_inches = 'tight')
+                plt.clf()
+                self.tableObjs.clear()
             
             #找出plot bar要佔用哪些grid
-            startGrid = self.techNum * 2 - 1
+            startGrid = (lambda tableObjSize : 0 if tableObjSize == 0 else (tableObjSize - 1) * 2 - 1)(len(self.tableObjs))
             figJump = ceil((gridNum - startGrid) / figCnt)
             figGrid = [startGrid]
             for i in range(figCnt):
@@ -343,14 +290,61 @@ class split_testIRR_draw:
                 fancybox = True, shadow = False, 
                 ncol = len(self.df.columns), 
                 fontsize = split_testIRR_draw.allFontSize)
-            titleTechNames = [i + '"' for i in ['"' + j for j in self.techNames]]
-            fig.suptitle(self.company + " " + split_testIRR_draw.trainOrTest + ' ' +  ' '.join(titleTechNames) + ' IRR rank', 
-                         y = 1.07, 
+            figTitle = self.company + " " + split_testIRR_draw.trainOrTest + ' ' +  ' '.join(titleTechNames) + ' IRR rank'
+            fig.suptitle(figTitle, 
+                         y = (lambda tableObjSize:1.07 if tableObjSize > 1 else 1.03)(len(self.tableObjs)), 
                          fontsize = split_testIRR_draw.allFontSize + 5)
             # fig.subplots_adjust(hspace=1)
-            plt.savefig(self.company + '_all_IRR'  + '.png', dpi = fig.dpi, bbox_inches = 'tight')
+            if split_testIRR_draw.seperateTable:
+                figName = self.company + '_all_IRR_no_table'  + '.png'
+            else:
+                figName = self.company + '_all_IRR'  + '.png'
+            fig.savefig(figName, dpi = fig.dpi, bbox_inches = 'tight')
             plt.clf()
+        
+        def set_grid(self, fig):
+            gridNum = (lambda x : 24 if x == 1 else 25)(split_testIRR_draw.seperateTable)
+            if self.techNum == 1:
+                hspace = -0.9
+            elif self.techNum == 2:
+                hspace = -0.57
+            elif self.techNum == 3:
+                hspace = -0.25
             
+            if split_testIRR_draw.seperateTable:
+                gs = fig.add_gridspec(gridNum, 1)
+            else:
+                gs = fig.add_gridspec(
+                    gridNum, 1, 
+                    wspace = 0, 
+                    hspace = hspace, 
+                    top = 1, 
+                    bottom = 0, 
+                    # left = 0.17, 
+                    # right = 0.845
+                    )
+            return gs, gridNum
+                
+        def draw_tables(self, fig, gs):
+            for i, j in zip(range(0, self.dataColLen * self.techNum, self.dataColLen), range(self.techNum)):
+                tableAx = fig.add_subplot(gs[j, : ])
+                tableAx.axis('off')
+                self.draw_table(tableAx, i, i + self.dataColLen)
+            
+            #比較table中不同指標誰比較大，並著色
+            if len(self.techNames) > 1:
+                for colNum in range(self.dataColLen):
+                    self.find_big_cell(colNum)
+
+            #設定比較table
+            if len(self.techNames) > 1:
+                for i in range(self.techNum - 1):
+                    tableAx = fig.add_subplot(gs[self.techNum + i, : ])
+                    tableAx.axis('off')
+                    startCol = self.dataColLen * self.techNum + i * self.finalCompareLen
+                    endCol = startCol + self.finalCompareLen
+                    self.draw_table(tableAx, startCol, endCol)
+        
         def draw_table(self, tableAx, startCol, endCol):
             tmpTableDf = self.tableDf.iloc[ : , startCol : endCol]
             topTable = tableAx.table(
@@ -368,13 +362,13 @@ class split_testIRR_draw:
             topTable.auto_set_font_size(False)
             topTable.set_fontsize('large')  # Valid font size are xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
             if len(self.tableObjs) > self.techNum:
-                topTable.auto_set_column_width(col = list(range(len(self.tableDf.columns))))
+                # topTable.auto_set_column_width(col = list(range(len(self.tableDf.columns))))
                 for i in range(6):
                     if i < 3:
-                        topTable[0, 4 + i].set_color('lightsteelblue')
+                        topTable[0, self.frontLen + i].set_color('lightsteelblue')
                     else:
-                        topTable[0, 4 + i].set_color('bisque')
-                    topTable[0, 4 + i].set_edgecolor('black')
+                        topTable[0, self.frontLen + i].set_color('bisque')
+                    topTable[0, self.frontLen + i].set_edgecolor('black')
         
         def find_big_cell(self, colNum):
             cellCompare = list()
@@ -395,7 +389,7 @@ class split_testIRR_draw:
 
 if __name__ == '__main__':
     # draw_hold()
-    x = split_testIRR_draw('train_IRR_IRR_sorted_SMA_2', 1, 1)
+    x = split_testIRR_draw('train_IRR_IRR_sorted_SMA_2', split = 1, drawBar = 1, seperateTable = 0)
 
 # def split_testIRR_draw(fileName, split, draw):
 #     print(fileName)
