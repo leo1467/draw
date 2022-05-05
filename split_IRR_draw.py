@@ -10,15 +10,29 @@ import matplotlib.ticker as mtick
 file_extension = '.csv'
 root = os.getcwd()
 
-class split_testIRR_draw:
+class split_IRR_draw:
     #設定滑動視窗group
-    slidingLableClrList = [[['YYY2YYY', 'YYY2YY', 'YYY2Y', 'YYY2YH', 'YY2YY', 'YY2YH', 'YY2Y', 'YH2YH', 'YH2Y', 'Y2Y'], 'gold'],
-                           [['YYY2H', 'YYY2Q', 'YYY2M', 'YY2H', 'YY2Q', 'YY2M', 'YH2H', 'YH2Q', 'YH2M', 'Y2H', 'Y2Q', 'Y2M'], 'limegreen'],
-                           [['H2H', 'H#', 'H2Q', 'Q2Q', 'Q#', 'H2M', 'Q2M', 'M2M', 'M#'], 'r'],
-                           [['20D20', '20D15', '20D10', '20D5', '15D15', '15D10', '15D5', '10D10', '10D5', '5D5'], 'grey'],
-                           [['4W4', '4W3', '4W2', '4W1', '3W3', '3W2', '3W1', '2W2', '2W1', '1W1'], 'darkgoldenrod'],
-                           [['5D5', '5D4', '5D3', '5D2', '4D4', '4D3', '4D2', '3D3', '3D2', '2D2'], 'w']
-                           ]
+    slidingLableClrList = [
+        [['YYY2YYY', 'YYY2YY', 'YYY2Y', 'YYY2YH', 'YY2YY', 'YY2YH', 'YY2Y', 'YH2YH', 'YH2Y', 'Y2Y'], 'gold'],
+        [['YYY2H', 'YYY2Q', 'YYY2M', 'YY2H', 'YY2Q', 'YY2M', 'YH2H', 'YH2Q', 'YH2M', 'Y2H', 'Y2Q', 'Y2M'], 'limegreen'],
+        [['H#', 'H2H', 'H2Q', 'H2M', 'Q#', 'Q2Q', 'Q2M', 'M#', 'M2M'], 'r'],
+        [['20D20', '20D15', '20D10', '20D5', '15D15', '15D10', '15D5', '10D10', '10D5', '5D5'], 'grey'],
+        [['4W4', '4W3', '4W2', '4W1', '3W3', '3W2', '3W1', '2W2', '2W1', '1W1'], 'darkgoldenrod'],
+        [['5D4', '5D3', '5D2', '4D4', '4D3', '4D2', '3D3', '3D2', '2D2'], 'w']
+        ]
+    reorderList = [
+        'YYY2YYY', 'YYY2YY', 'YYY2YH', 'YYY2Y', 'YYY2H', 'YYY2Q', 'YYY2M', 
+        'YY2YY', 'YY2YH', 'YY2Y', 'YY2H', 'YY2Q', 'YY2M', 
+        'YH2YH', 'YH2Y', 'YH2H', 'YH2Q', 'YH2M', 
+        'Y2Y', 'Y2H', 'Y2Q', 'Y2M', 
+        'H#', 'H2H', 'H2Q', 'H2M', 'Q#', 'Q2Q', 'Q2M', 'M#', 'M2M', 
+        '20D20', '20D15', '20D10', '20D5', '4W4', '4W3', '4W2', '4W1', 
+        '15D15', '15D10', '15D5', '3W3', '3W2', '3W1', 
+        '10D10', '10D5', '2W2', '2W1', 
+        '5D5', '5D4', '5D3', '5D2', '1W1', 
+        '4D4', '4D3', '4D2', 
+        '3D3', '3D2', 
+        '2D2']
     #設定bar屬性
     barColorSet = ['steelblue', 'darkorange', 'paleturquoise', 'wheat', 'lightcyan', 'lightyellow']
     BHColor = 'r'
@@ -37,11 +51,13 @@ class split_testIRR_draw:
         )
     allFontSize = 10
     
-    def __init__(self, fileName, split, drawBar, seperateTable):
-        split_testIRR_draw.seperateTable = seperateTable
+    def __init__(self, fileName, split, drawBar, seperateTable, reorder):
+        split_IRR_draw.seperateTable = seperateTable
+        split_IRR_draw.reorder = reorder
         self.fileName = fileName + '.csv'
         self.dirName = 'split_' + self.fileName.split('.')[0]
         print(self.fileName)
+        self.process_fileName_dir()
         if split:
             self.split()
         else:
@@ -53,7 +69,7 @@ class split_testIRR_draw:
             if drawBar:
                 processACompany.draw_bar(fig, gs, gridNum)
             # break
-        plt.close(split_testIRR_draw.fig)
+        plt.close(split_IRR_draw.fig)
         os.chdir(root)
         for dfIndex, eachDf in enumerate(self.tables):
             if dfIndex == 0:
@@ -63,7 +79,6 @@ class split_testIRR_draw:
         
     def split(self):
         self.IRRdf = pd.read_csv(self.fileName, index_col = False)
-        self.process_fileName_dir()
         if True in self.IRRdf.columns.str.contains('^Unnamed'):
             self.IRRdf = self.IRRdf.loc[: , ~self.IRRdf.columns.str.contains('^Unnamed')]
             self.IRRdf.to_csv(self.fileName, index = None)
@@ -81,8 +96,8 @@ class split_testIRR_draw:
                 
     def process_fileName_dir(self):
         fileNameList = self.fileName.split('.')[0].split('_')
-        split_testIRR_draw.allTitle = '_'.join(fileNameList[fileNameList.index('sorted') + 1: ])
-        split_testIRR_draw.trainOrTest = fileNameList[0]
+        split_IRR_draw.allTitle = '_'.join(fileNameList[fileNameList.index('sorted') + 1: ])
+        split_IRR_draw.trainOrTest = fileNameList[0]
         if not os.path.isdir(self.dirName):
             os.mkdir(self.dirName)
     
@@ -106,6 +121,9 @@ class split_testIRR_draw:
             for colIndex in self.df.columns:
                 for rowIndex in self.df.index:
                     self.df.at[rowIndex, colIndex] *= 100
+            if split_IRR_draw.reorder:
+                split_IRR_draw.reorderList.reverse()
+                self.df = self.df.reindex(split_IRR_draw.reorderList)
         
         def find_techNames(self):
             self.techNames = [name.split(' ')[0] for name in self.df.columns if 'B&H' not in name]
@@ -140,7 +158,7 @@ class split_testIRR_draw:
             self.cellData = np.array([['%.2f' % elem + '%'] if type(elem) != type(str()) else [elem] for elem in self.cellData])
             self.tableDf = pd.DataFrame(self.cellData.reshape(1, len(self.tableColumns)), columns = self.tableColumns)
             self.tableDf.rename(index = { 0: self.company }, inplace = True)
-            split_testIRR_draw.tables.append(self.tableDf)
+            split_IRR_draw.tables.append(self.tableDf)
                 
         def add_info(self, comp1, comp2, col1, col2, techCompare):
             if not techCompare:
@@ -186,7 +204,7 @@ class split_testIRR_draw:
         
         def start_draw_tables(self):
             #宣告fig
-            fig = split_testIRR_draw.fig
+            fig = split_IRR_draw.fig
             self.titleTechNames = [i + '"' for i in ['"' + j for j in self.techNames]]
             
             #設定grid資訊
@@ -195,9 +213,9 @@ class split_testIRR_draw:
             #設定top table
             self.tableObjs = list()
             self.draw_tables(fig, gs)
-            if split_testIRR_draw.seperateTable:
-                fig.suptitle(self.company + " " + split_testIRR_draw.trainOrTest + ' ' +  ' '.join(self.titleTechNames) + ' compare table', 
-                    fontsize = split_testIRR_draw.allFontSize + 5)
+            if split_IRR_draw.seperateTable:
+                fig.suptitle(self.company + " " + split_IRR_draw.trainOrTest + ' ' +  ' '.join(self.titleTechNames) + ' compare table', 
+                    fontsize = split_IRR_draw.allFontSize + 5)
                 fig.savefig(self.company + '_table'  + '.png', dpi = fig.dpi, bbox_inches = 'tight')
                 plt.clf()
                 self.tableObjs.clear()
@@ -206,9 +224,9 @@ class split_testIRR_draw:
         
         def draw_bar(self, fig, gs, gridNum):
             #設定每個bar的顏色及bar的最終寬度
-            colorDict = dict(zip(self.df.columns, split_testIRR_draw.barColorSet))
+            colorDict = dict(zip(self.df.columns, split_IRR_draw.barColorSet))
             if len(self.df.columns) < 3:
-                split_testIRR_draw.totalBarWidth = 0.5
+                split_IRR_draw.totalBarWidth = 0.5
             
             #將過長的df切開
             figCnt = (lambda x : 2 if x < 5 else 3)(len(self.df.columns))
@@ -235,7 +253,7 @@ class split_testIRR_draw:
                 subDf = self.df.iloc[dfCuttedIndex[splitIndex]: dfCuttedIndex[splitIndex + 1]]
                 plot = subDf.plot.bar(
                     ax = barAx, 
-                    width = split_testIRR_draw.totalBarWidth, 
+                    width = split_IRR_draw.totalBarWidth, 
                     rot = 0, 
                     color = colorDict, 
                     edgecolor = 'black', 
@@ -253,14 +271,14 @@ class split_testIRR_draw:
                         if barIndex == 0:
                             singleBarWidth = barContainer[BHIndex].get_width()
                             barX = ((barContainer[BHIndex].get_x() + (barContainer[BHIndex].get_x() + (len(subDf.columns) * singleBarWidth))) - singleBarWidth) / 2
-                        barContainer[BHIndex].set_color(split_testIRR_draw.BHColor)
+                        barContainer[BHIndex].set_color(split_IRR_draw.BHColor)
                         barContainer[BHIndex].set_x(barX)
                         barContainer[BHIndex].set_edgecolor('black')
                 
                 #如果是train，變更每個滑動視窗的B&H顏色
-                if split_testIRR_draw.trainOrTest == 'train':
+                if split_IRR_draw.trainOrTest == 'train':
                     for singleBar in plot.containers[-1]:
-                        singleBar.set_color(split_testIRR_draw.BHColor)
+                        singleBar.set_color(split_IRR_draw.BHColor)
                         singleBar.set_edgecolor('black')
                 
                 #設定其他屬性
@@ -269,12 +287,12 @@ class split_testIRR_draw:
                 barAx.locator_params(axis = 'y', nbins = 10)
                 barAx.set_xticklabels(subDf.index, rotation = 45)
                 barAx.set(xlabel = '', ylabel = '')
-                barAx.tick_params(axis = 'both', labelsize = split_testIRR_draw.allFontSize)  #設定xlabel ylabel字形大小
+                barAx.tick_params(axis = 'both', labelsize = split_IRR_draw.allFontSize)  #設定xlabel ylabel字形大小
                 
                 #設定lable顏色
                 for cellIndex in barAx.get_xticklabels():
                     txt = cellIndex.get_text()
-                    for slideGroup in split_testIRR_draw.slidingLableClrList:
+                    for slideGroup in split_IRR_draw.slidingLableClrList:
                         if txt in slideGroup[0]:
                             plt.setp(cellIndex, bbox = dict(boxstyle = 'round', edgecolor = 'none', alpha = 1, facecolor = slideGroup[1]))
                             break
@@ -289,13 +307,13 @@ class split_testIRR_draw:
                 bbox_to_anchor = (0.5, 0), 
                 fancybox = True, shadow = False, 
                 ncol = len(self.df.columns), 
-                fontsize = split_testIRR_draw.allFontSize)
-            figTitle = self.company + " " + split_testIRR_draw.trainOrTest + ' ' +  ' '.join(self.titleTechNames) + ' IRR rank'
+                fontsize = split_IRR_draw.allFontSize)
+            figTitle = self.company + " " + split_IRR_draw.trainOrTest + ' ' +  ' '.join(self.titleTechNames) + ' IRR rank'
             fig.suptitle(figTitle, 
                         y = (lambda tableObjSize:1.07 if tableObjSize > 1 else 1.03)(len(self.tableObjs)), 
-                        fontsize = split_testIRR_draw.allFontSize + 5)
+                        fontsize = split_IRR_draw.allFontSize + 5)
             # fig.subplots_adjust(hspace=1)
-            if split_testIRR_draw.seperateTable:
+            if split_IRR_draw.seperateTable:
                 figName = self.company + '_all_IRR_no_table'  + '.png'
             else:
                 figName = self.company + '_all_IRR'  + '.png'
@@ -303,7 +321,7 @@ class split_testIRR_draw:
             plt.clf()
         
         def set_grid(self, fig):
-            gridNum = (lambda x : 24 if x == 1 else 25)(split_testIRR_draw.seperateTable)
+            gridNum = (lambda x : 24 if x == 1 else 25)(split_IRR_draw.seperateTable)
             if self.techNum == 1:
                 hspace = -0.9
             elif self.techNum == 2:
@@ -311,7 +329,7 @@ class split_testIRR_draw:
             elif self.techNum == 3:
                 hspace = -0.25
             
-            if split_testIRR_draw.seperateTable:
+            if split_IRR_draw.seperateTable:
                 gs = fig.add_gridspec(gridNum, 1)
             else:
                 gs = fig.add_gridspec(

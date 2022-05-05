@@ -6,7 +6,7 @@ import pandas as pd
 import glob
 import os
 import matplotlib.ticker as mtick
-import split_testIRR_draw
+import split_IRR_draw
 
 root = os.getcwd()
 file_extension = '.csv'
@@ -14,7 +14,7 @@ splitTargetFolder = ['/testBestHold']
 
 if __name__ == '__main__':
     # draw_hold()
-    x = split_testIRR_draw.split_testIRR_draw('train_IRR_IRR_sorted_RSI_2', split = 1, drawBar = 1, seperateTable = 1)
+    x = split_IRR_draw.split_IRR_draw('train_IRR_IRR_sorted_RSI_2', split = 0, drawBar = 1, seperateTable = 1, reorder = 0)
 
 # def split_testIRR_draw(fileName, split, draw):
 #     print(fileName)
