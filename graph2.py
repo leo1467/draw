@@ -51,10 +51,9 @@ class split_testIRR_draw:
         self.allIRRFile = [i for i in glob.glob(f"*{file_extension}")]
         for FileIndex, file in enumerate(self.allIRRFile):
             processACompany = self.ProcessACompany(FileIndex, file)
+            fig, gs, gridNum = processACompany.start_draw_tables()
             if drawBar:
-                processACompany.draw()
-                split_testIRR_draw.seperateTable = 1
-                processACompany.draw()
+                processACompany.draw_bar(fig, gs, gridNum)
             # break
         plt.close(split_testIRR_draw.fig)
         os.chdir(root)
@@ -187,7 +186,27 @@ class split_testIRR_draw:
         def compare(self, window, col1, col2):
             return self.df.at[window, self.df.columns[col1]] > self.df.at[window, self.df.columns[col2]]
         
-        def draw(self):
+        def start_draw_tables(self):
+            #宣告fig
+            fig = split_testIRR_draw.fig
+            self.titleTechNames = [i + '"' for i in ['"' + j for j in self.techNames]]
+            
+            #設定grid資訊
+            gs, gridNum = self.set_grid(fig)
+            
+            #設定top table
+            self.tableObjs = list()
+            self.draw_tables(fig, gs)
+            if split_testIRR_draw.seperateTable:
+                fig.suptitle(self.company + " " + split_testIRR_draw.trainOrTest + ' ' +  ' '.join(self.titleTechNames) + ' compare table', 
+                    fontsize = split_testIRR_draw.allFontSize + 5)
+                fig.savefig(self.company + '_table'  + '.png', dpi = fig.dpi, bbox_inches = 'tight')
+                plt.clf()
+                self.tableObjs.clear()
+            
+            return fig, gs, gridNum
+        
+        def draw_bar(self, fig, gs, gridNum):
             #設定每個bar的顏色及bar的最終寬度
             colorDict = dict(zip(self.df.columns, split_testIRR_draw.barColorSet))
             if len(self.df.columns) < 3:
@@ -199,23 +218,6 @@ class split_testIRR_draw:
             for i in range(figCnt):
                 dfCuttedIndex.append(floor(len(self.df) / figCnt) * i)
             dfCuttedIndex.append(len(self.df))
-            
-            #宣告fig
-            fig = split_testIRR_draw.fig
-            titleTechNames = [i + '"' for i in ['"' + j for j in self.techNames]]
-            
-            #設定grid資訊
-            gs, gridNum = self.set_grid(fig)
-            
-            #設定top table
-            self.tableObjs = list()
-            self.draw_tables(fig, gs)
-            if split_testIRR_draw.seperateTable:
-                fig.suptitle(self.company + " " + split_testIRR_draw.trainOrTest + ' ' +  ' '.join(titleTechNames) + ' compare table', 
-                    fontsize = split_testIRR_draw.allFontSize + 5)
-                fig.savefig(self.company + '_table'  + '.png', dpi = fig.dpi, bbox_inches = 'tight')
-                plt.clf()
-                self.tableObjs.clear()
             
             #找出plot bar要佔用哪些grid
             startGrid = (lambda tableObjSize : 0 if tableObjSize == 0 else (tableObjSize - 1) * 2 - 1)(len(self.tableObjs))
@@ -290,10 +292,10 @@ class split_testIRR_draw:
                 fancybox = True, shadow = False, 
                 ncol = len(self.df.columns), 
                 fontsize = split_testIRR_draw.allFontSize)
-            figTitle = self.company + " " + split_testIRR_draw.trainOrTest + ' ' +  ' '.join(titleTechNames) + ' IRR rank'
+            figTitle = self.company + " " + split_testIRR_draw.trainOrTest + ' ' +  ' '.join(self.titleTechNames) + ' IRR rank'
             fig.suptitle(figTitle, 
-                         y = (lambda tableObjSize:1.07 if tableObjSize > 1 else 1.03)(len(self.tableObjs)), 
-                         fontsize = split_testIRR_draw.allFontSize + 5)
+                        y = (lambda tableObjSize:1.07 if tableObjSize > 1 else 1.03)(len(self.tableObjs)), 
+                        fontsize = split_testIRR_draw.allFontSize + 5)
             # fig.subplots_adjust(hspace=1)
             if split_testIRR_draw.seperateTable:
                 figName = self.company + '_all_IRR_no_table'  + '.png'
@@ -389,7 +391,7 @@ class split_testIRR_draw:
 
 if __name__ == '__main__':
     # draw_hold()
-    x = split_testIRR_draw('train_IRR_IRR_sorted_SMA_2', split = 1, drawBar = 1, seperateTable = 0)
+    x = split_testIRR_draw('train_IRR_IRR_sorted_RSI_2', split = 1, drawBar = 1, seperateTable = 0)
 
 # def split_testIRR_draw(fileName, split, draw):
 #     print(fileName)
