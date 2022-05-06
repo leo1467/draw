@@ -6,6 +6,8 @@ import pandas as pd
 import glob
 import os
 
+from regex import E
+
 root = os.getcwd()
 file_extension = '.csv'
 
@@ -13,7 +15,7 @@ class draw_hold_period:
     fig = plt.figure(figsize = [21, 9], dpi = 300, constrained_layout = True)
     allFontSize = 15
     
-    def __init__(self, year, tech, isTrain, isTradition):
+    def __init__(self, year, tech, isTrain, isTradition, setCompany):
         self.algoOrTrad = (lambda x:'Tradition' if x == 1 else '')(isTradition)
         self.trainOrTest = (lambda x:'train' if x == 1 else 'test')(isTrain)
         os.chdir('../')
@@ -21,7 +23,10 @@ class draw_hold_period:
         self.workRoot = [dir for dir in glob.glob(parentFolder + '/**/**/**') if 'exp_result' in dir and year in dir][0] + f'/result_{tech}/'
         self.workRoot = self.workRoot.replace(parentFolder + '/', '')
         os.chdir(self.workRoot)
-        self.allCompay = [dir for dir in os.listdir() if os.path.isdir(dir)]
+        if setCompany != 'all':
+            self.allCompay = setCompany
+        else:
+            self.allCompay = [dir for dir in os.listdir() if os.path.isdir(dir)]
         self.allBestHoldPath = [i + f'/{self.trainOrTest + self.algoOrTrad}BestHold/' for i in self.allCompay]
         fig = draw_hold_period.fig
         gridNum = 24        
@@ -61,13 +66,22 @@ class draw_hold_period:
                         )
                     tableAx = fig.add_subplot(gs[0, : ])
                     tableAx.axis('off')
-                    tableDf = pd.DataFrame([[1,2,3]],columns = ['1','2','3'])
+                    cellData =  list()
+                    cellData.append(['buy Num', len(buyX)])
+                    cellData.append(['sell Num', len(sellDateX) + len(sellTechConditionX)])
+                    cellData.append(['sell Date', len(sellDateX)])
+                    cellData.append([newDf.columns[4], len(sellTechConditionX)])
+                    tableCol = [elem[0] for elem in cellData]
+                    cellData = np.array([elem[1] for elem in cellData]).reshape(1, len(tableCol))
+                    tableDf = pd.DataFrame(cellData,columns = tableCol)
                     topTable = tableAx.table(
                         colLabels = tableDf.columns,
                         cellText = tableDf.values,
                         cellLoc = 'center', 
                         colColours = ['silver'] * (len(tableDf.columns)), 
                         )
+                    topTable.auto_set_font_size(False)
+                    topTable.set_fontsize('large')  # xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
                     ax = fig.add_subplot(gs[1: , :])
                     ax.plot(newDf.index,newDf['Price'],label='Price',color='steelblue',linewidth=4)
                     ax.plot(newDf.index,newDf['Hold'],label='Hold',color='darkorange',linewidth=4)
@@ -113,14 +127,14 @@ class draw_hold_period:
                         title = file.replace('.csv','_') + newDf.index[0].split('-')[0]
                     print(title)
                     fig.suptitle(title, 
-                        # y = (lambda tableObjSize:1.07 if tableObjSize > 1 else 1.03)(len(self.tableObjs)), 
+                        y = 1,
                         fontsize = draw_hold_period.allFontSize)
                     fig.savefig(title +'.png',dpi = draw_hold_period.fig.dpi, bbox_inches = 'tight')
                     plt.clf()
-                    exit(0)
-            # os.chdir(self.workRoot)
+            for i in range(2):
+                os.chdir('../')
 
-x = draw_hold_period('2021', 'RSI', 0, 0)
+x = draw_hold_period('2021', 'RSI', 0, 0, 'all')
     
 
 # def split_testIRR_draw(fileName, split, draw):
