@@ -403,3 +403,5 @@ class split_IRR_draw:
             for cell in bigCell:
                 cell.set_color('lime')
                 cell.set_edgecolor('black')
+
+x = split_IRR_draw('train_IRR_IRR_sorted_SMA_2', split = 0, drawBar = 1, seperateTable = 1, reorder = 0)                
