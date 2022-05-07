@@ -1,4 +1,3 @@
-from matplotlib import table
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -12,14 +11,15 @@ class draw_hold_period:
     fig = plt.figure(figsize = [21, 9], dpi = 300, constrained_layout = True)
     allFontSize = 15
     scatterClr = ['green', 'red', 'purple']
-    tradeInfo = list()
+    allCompanyTradeInfo = list()
     
     def __init__(self, year, tech, isTrain, isTradition, setCompany):
+        self.tech = tech
         self.algoOrTrad = (lambda x : 'Tradition' if x == 1 else '')(isTradition)
         self.trainOrTest = (lambda x : 'train' if x == 1 else 'test')(isTrain)
         os.chdir('../')
         parentFolder = os.getcwd()
-        self.workRoot = [dir for dir in glob.glob(parentFolder + '/**/**/**') if 'exp_result' in dir and year in dir][0] + f'/result_{tech}/'
+        self.workRoot = [dir for dir in glob.glob(parentFolder + '/**/**/**') if 'exp_result' in dir and year in dir][0] + f'/result_{self.tech}/'
         self.workRoot = self.workRoot.replace(parentFolder + '/', '')
         os.chdir(self.workRoot)
         if setCompany != 'all':
@@ -28,7 +28,7 @@ class draw_hold_period:
             self.allCompay = [dir for dir in os.listdir() if os.path.isdir(dir)]
         self.allBestHoldPath = [i + f'/{self.trainOrTest + self.algoOrTrad}BestHold/' for i in self.allCompay]
         self.fig = draw_hold_period.fig
-        gridNum = 24        
+        gridNum = 24
         self.gs = self.fig.add_gridspec(
             gridNum, 1, 
             # wspace = 0, 
@@ -46,7 +46,8 @@ class draw_hold_period:
                 self.process_file_and_draw(file)
             for i in range(2):
                 os.chdir('../')
-    
+        self.output_tradeInfo()
+
     def process_file_and_draw(self, file):
         df = pd.read_csv(file, index_col = 0)
         yearIndexes = []
@@ -74,6 +75,8 @@ class draw_hold_period:
         
         buyX = [i for i in newDf.index if not np.isnan(newDf.at[i, 'buy'])]
         buyY = [i for i in newDf['buy'] if not np.isnan(i)]
+        # buyX = newDf[newDf['buy'].notnull()].index
+        # buyY = newDf['buy'].values[newDf.index.isin(buyX)]
         tradeInfo.append(['buy', buyX, buyY])
         
         sellDateX = [i for i in newDf.index if not np.isnan(newDf.at[i, 'sell date'])]
@@ -84,6 +87,10 @@ class draw_hold_period:
         sellTechConditionY = [i for i in newDf[newDf.columns[4]] if not np.isnan(i)]
         tradeInfo.append([newDf.columns[4], sellTechConditionX, sellTechConditionY])
         
+        sellX = [i for i in newDf.index if not np.isnan(newDf.at[i, 'sell date']) or not np.isnan(newDf.at[i, newDf.columns[4]])]
+        sellY = list(newDf['Price'].values[newDf.index.isin(sellX)])
+        tradeInfo.append(['sell', sellX, sellY])
+
         return tradeInfo
     
     def make_tableDf(self, tradeInfo, yearIndexes, yearIndex):
@@ -94,12 +101,16 @@ class draw_hold_period:
         cellData.append([tradeInfo[1][0], len(tradeInfo[1][1])])
         cellData.append([tradeInfo[2][0], len(tradeInfo[2][1])])
         
+        if yearIndex == len(yearIndexes) - 1:
+            winRate = str(len([i for i, j in zip(tradeInfo[0][2], tradeInfo[-1][2]) if j - i > 0]) / len(tradeInfo[0][1]) * 100) + '%'
+            cellData.append(['win rate', winRate])
+        
         tableCol = [elem[0] for elem in cellData]
         cellData = np.array([elem[1] for elem in cellData]).reshape(1, len(tableCol))
         tableDf = pd.DataFrame(cellData,columns = tableCol)
         
         if yearIndex == len(yearIndexes) - 1:
-            self.tradeInfo.append(tableDf)
+            self.allCompanyTradeInfo.append(tableDf)
         
         return tableDf
     
@@ -120,7 +131,7 @@ class draw_hold_period:
         ax.plot(newDf.index, newDf['Price'], label = 'Price', color = 'steelblue', linewidth = 4)
         ax.plot(newDf.index, newDf['Hold'], label = 'Hold', color = 'darkorange', linewidth = 4)
         if yearIndex != len(yearIndexes) - 1:
-            for scaterInfo, scaterClr in zip(tradeInfo, draw_hold_period.scatterClr):
+            for scaterInfo, scaterClr in zip(tradeInfo[ : -1], draw_hold_period.scatterClr):
                 ax.scatter(scaterInfo[1], scaterInfo[2], color = scaterClr, s = 40, zorder = 10, label = scaterInfo[0])
         
         # buy = [i for i in newDf.index if not np.isnan(newDf.at[i,'buy'])]
@@ -164,9 +175,18 @@ class draw_hold_period:
         self.fig.savefig(title +'.png', dpi = draw_hold_period.fig.dpi, bbox_inches = 'tight')
         plt.clf()
     
-
-x = draw_hold_period('2021', 'RSI', 0, 0, 'all')
+    def output_tradeInfo(self):
+        os.chdir('../')
+        filename = f'{self.trainOrTest + self.algoOrTrad}' + f'_tradeInfo_{self.tech}.csv'
+        for dfIndex, eachDf in enumerate(self.allCompanyTradeInfo):
+            # eachDf.insert(0, 'company', self.allCompay[dfIndex])  # add new column to first position
+            eachDf.rename(index = { 0: self.allCompay[dfIndex] }, inplace = True)
+            if dfIndex == 0:
+                eachDf.to_csv(filename)
+            else:
+                eachDf.to_csv(filename, mode = 'a', header = None)
     
+x = draw_hold_period('2021', 'RSI', 0, 0, 'all')
 
 # def split_testIRR_draw(fileName, split, draw):
 #     print(fileName)
