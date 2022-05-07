@@ -1,3 +1,4 @@
+from matplotlib import table
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -10,6 +11,8 @@ file_extension = '.csv'
 class draw_hold_period:
     fig = plt.figure(figsize = [21, 9], dpi = 300, constrained_layout = True)
     allFontSize = 15
+    scatterClr = ['green', 'red', 'purple']
+    tradeInfo = list()
     
     def __init__(self, year, tech, isTrain, isTradition, setCompany):
         self.algoOrTrad = (lambda x : 'Tradition' if x == 1 else '')(isTradition)
@@ -37,7 +40,7 @@ class draw_hold_period:
             )
         for bestHoldDir in self.allBestHoldPath:
             os.chdir(bestHoldDir)
-            holdFile = [i for i in glob.glob(f"*{file_extension}")]
+            holdFile = [i for i in glob.glob(f"*{file_extension}") if 'hold' in i]
             print(holdFile)
             for file in holdFile:
                 self.process_file_and_draw(file)
@@ -59,27 +62,50 @@ class draw_hold_period:
                 newDf = df.iloc[yearIndexes[0] : yearIndexes[-1]]
             else:
                 newDf = df.iloc[yearIndexes[yearIndex] : yearIndexes[yearIndex+1]]
-            buyX = [i for i in newDf.index if not np.isnan(newDf.at[i, 'buy'])]
-            buyY = [i for i in newDf['buy'] if not np.isnan(i)]
-            sellDateX = [i for i in newDf.index if not np.isnan(newDf.at[i, 'sell date'])]
-            sellDateY = [i for i in newDf['sell date'] if not np.isnan(i)]
-            sellTechConditionX = [i for i in newDf.index if not np.isnan(newDf.at[i, newDf.columns[4]])]
-            sellTechConditionY = [i for i in newDf[newDf.columns[4]] if not np.isnan(i)]
+                
+            tradeInfo = self.record_tradInfo(newDf)
+            tableDf = self.make_tableDf(tradeInfo, yearIndexes, yearIndex)
             
-            self.draw_table(newDf, buyX, sellDateX, sellTechConditionX)
-            self.plot_hold(file, df, newDf, yearIndexes, yearIndex, buyX, buyY, sellDateX, sellDateY, sellTechConditionX, sellTechConditionY)
+            self.draw_table(tableDf)
+            self.plot_hold(file, df, newDf, yearIndexes, yearIndex, tradeInfo)
     
-    def draw_table(self, newDf, buyX, sellDateX, sellTechConditionX):
-        tableAx = self.fig.add_subplot(self.gs[0, : ])
-        tableAx.axis('off')
+    def record_tradInfo(self, newDf):
+        tradeInfo = list()
+        
+        buyX = [i for i in newDf.index if not np.isnan(newDf.at[i, 'buy'])]
+        buyY = [i for i in newDf['buy'] if not np.isnan(i)]
+        tradeInfo.append(['buy', buyX, buyY])
+        
+        sellDateX = [i for i in newDf.index if not np.isnan(newDf.at[i, 'sell date'])]
+        sellDateY = [i for i in newDf['sell date'] if not np.isnan(i)]
+        tradeInfo.append(['sell date', sellDateX, sellDateY])
+        
+        sellTechConditionX = [i for i in newDf.index if not np.isnan(newDf.at[i, newDf.columns[4]])]
+        sellTechConditionY = [i for i in newDf[newDf.columns[4]] if not np.isnan(i)]
+        tradeInfo.append([newDf.columns[4], sellTechConditionX, sellTechConditionY])
+        
+        return tradeInfo
+    
+    def make_tableDf(self, tradeInfo, yearIndexes, yearIndex):
         cellData =  list()
-        cellData.append(['buy Num', len(buyX)])
-        cellData.append(['sell Num', len(sellDateX) + len(sellTechConditionX)])
-        cellData.append(['sell Date', len(sellDateX)])
-        cellData.append([newDf.columns[4], len(sellTechConditionX)])
+        
+        cellData.append(['buy Num', len(tradeInfo[0][1])])
+        cellData.append(['sell Num', len(tradeInfo[1][1]) + len(tradeInfo[2][1])])
+        cellData.append([tradeInfo[1][0], len(tradeInfo[1][1])])
+        cellData.append([tradeInfo[2][0], len(tradeInfo[2][1])])
+        
         tableCol = [elem[0] for elem in cellData]
         cellData = np.array([elem[1] for elem in cellData]).reshape(1, len(tableCol))
         tableDf = pd.DataFrame(cellData,columns = tableCol)
+        
+        if yearIndex == len(yearIndexes) - 1:
+            self.tradeInfo.append(tableDf)
+        
+        return tableDf
+    
+    def draw_table(self, tableDf):
+        tableAx = self.fig.add_subplot(self.gs[0, : ])
+        tableAx.axis('off')
         topTable = tableAx.table(
             colLabels = tableDf.columns,
             cellText = tableDf.values,
@@ -89,14 +115,13 @@ class draw_hold_period:
         topTable.auto_set_font_size(False)
         topTable.set_fontsize('large')  # xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
         
-    def plot_hold(self, file, df, newDf, yearIndexes, yearIndex, buyX, buyY, sellDateX, sellDateY, sellTechConditionX, sellTechConditionY):
+    def plot_hold(self, file, df, newDf, yearIndexes, yearIndex, tradeInfo):
         ax = self.fig.add_subplot(self.gs[1: , :])
         ax.plot(newDf.index, newDf['Price'], label = 'Price', color = 'steelblue', linewidth = 4)
         ax.plot(newDf.index, newDf['Hold'], label = 'Hold', color = 'darkorange', linewidth = 4)
         if yearIndex != len(yearIndexes) - 1:
-            ax.scatter(buyX, buyY, color = 'green', s = 40, zorder = 10,label = 'buy')
-            ax.scatter(sellDateX, sellDateY, color = 'red', s = 40, zorder = 10,label = 'sell date')
-            ax.scatter(sellTechConditionX, sellTechConditionY, color = 'purple', s = 40, zorder = 10, label = newDf.columns[4])
+            for scaterInfo, scaterClr in zip(tradeInfo, draw_hold_period.scatterClr):
+                ax.scatter(scaterInfo[1], scaterInfo[2], color = scaterClr, s = 40, zorder = 10, label = scaterInfo[0])
         
         # buy = [i for i in newDf.index if not np.isnan(newDf.at[i,'buy'])]
         # sell = [i for i in newDf.index if not np.isnan(newDf.at[i,'sell date'])]
