@@ -10,7 +10,8 @@ file_extension = '.csv'
 class draw_hold_period:
     fig = plt.figure(figsize = [21, 9], dpi = 300, constrained_layout = True)
     allFontSize = 15
-    scatterClr = ['green', 'red', 'purple']
+    scatterClr = ['black', 'lime', 'yellow']
+    scatterMarker = ['.', '.', '.']
     allCompanyTradeInfo = list()
     
     def __init__(self, year, tech, isTrain, isTradition, setCompany):
@@ -59,6 +60,7 @@ class draw_hold_period:
                 year = nowYear
         yearIndexes.append(len(df))
         for yearIndex in range(len(yearIndexes)):
+        # for yearIndex in range(6, 7):
             if yearIndex == len(yearIndexes) - 1:
                 newDf = df.iloc[yearIndexes[0] : yearIndexes[-1]]
             else:
@@ -83,14 +85,14 @@ class draw_hold_period:
         sellDateY = [i for i in newDf['sell date'] if not np.isnan(i)]
         tradeInfo.append(['sell date', sellDateX, sellDateY])
         
-        sellTechConditionX = [i for i in newDf.index if not np.isnan(newDf.at[i, newDf.columns[4]])]
-        sellTechConditionY = [i for i in newDf[newDf.columns[4]] if not np.isnan(i)]
-        tradeInfo.append([newDf.columns[4], sellTechConditionX, sellTechConditionY])
+        sellTechConditionX = [i for i in newDf.index if not np.isnan(newDf.at[i, f'sell {self.tech}'])]
+        sellTechConditionY = [i for i in newDf[f'sell {self.tech}'] if not np.isnan(i)]
+        tradeInfo.append([f'sell {self.tech}', sellTechConditionX, sellTechConditionY])
         
-        sellX = [i for i in newDf.index if not np.isnan(newDf.at[i, 'sell date']) or not np.isnan(newDf.at[i, newDf.columns[4]])]
+        sellX = [i for i in newDf.index if not np.isnan(newDf.at[i, 'sell date']) or not np.isnan(newDf.at[i, f'sell {self.tech}'])]
         sellY = list(newDf['Price'].values[newDf.index.isin(sellX)])
         tradeInfo.append(['sell', sellX, sellY])
-
+        
         return tradeInfo
     
     def make_tableDf(self, tradeInfo, yearIndexes, yearIndex):
@@ -101,9 +103,18 @@ class draw_hold_period:
         cellData.append([tradeInfo[1][0], len(tradeInfo[1][1])])
         cellData.append([tradeInfo[2][0], len(tradeInfo[2][1])])
         
-        if yearIndex == len(yearIndexes) - 1:
-            winRate = str(len([i for i, j in zip(tradeInfo[0][2], tradeInfo[-1][2]) if j - i > 0]) / len(tradeInfo[0][1]) * 100) + '%'
-            cellData.append(['win rate', winRate])
+        buyY = tradeInfo[0][2].copy()
+        sellY = tradeInfo[-1][2].copy()
+        
+        if tradeInfo[0][1][0] > tradeInfo[-1][1][0]: #去年買今年賣,插入去年買buyY的尾巴
+            buyY.insert(0, self.lastBuyY)
+        
+        if tradeInfo[0][1][-1] > tradeInfo[-1][1][-1]: #今年買明年賣,記錄今年buyY的尾巴
+            self.lastBuyY = tradeInfo[0][2][-1]
+        tradeNum = len(sellY)
+            
+        winRate = str(len([i for i, j in zip(buyY, sellY) if j - i > 0]) / tradeNum * 100) + '%'
+        cellData.append(['win rate', winRate])
         
         tableCol = [elem[0] for elem in cellData]
         cellData = np.array([elem[1] for elem in cellData]).reshape(1, len(tableCol))
@@ -129,11 +140,20 @@ class draw_hold_period:
     def plot_hold(self, file, df, newDf, yearIndexes, yearIndex, tradeInfo):
         ax = self.fig.add_subplot(self.gs[1: , :])
         ax.plot(newDf.index, newDf['Price'], label = 'Price', color = 'steelblue', linewidth = 4)
-        ax.plot(newDf.index, newDf['Hold'], label = 'Hold', color = 'darkorange', linewidth = 4)
-        if yearIndex != len(yearIndexes) - 1:
-            for scaterInfo, scaterClr in zip(tradeInfo[ : -1], draw_hold_period.scatterClr):
-                ax.scatter(scaterInfo[1], scaterInfo[2], color = scaterClr, s = 40, zorder = 10, label = scaterInfo[0])
+        ax.plot(newDf.index, newDf['hold 1'], label = 'Hold', color = 'darkorange', linewidth = 4)
+        ax.plot(newDf.index, newDf['hold 2'], color = 'darkorange', linewidth = 4)
         
+        #不知道為什麼會有warning
+        # ax.scatter(newDf.index, newDf['buy'], label = 'buy', color = 'black', s = 40, zorder = 10)
+        # ax.scatter(newDf.index, newDf['sell date'], label = 'sell date', color = 'lime', s = 40, zorder = 10)
+        # ax.scatter(newDf.index, newDf[f'sell {self.tech}'], label = f'sell {self.tech}', color = 'yellow', s = 40, zorder = 10)
+        
+        #打開可以畫點
+        # if yearIndex != len(yearIndexes) - 1:
+        #     for scaterInfo, scaterClr, m in zip(tradeInfo[0 : -1], draw_hold_period.scatterClr, draw_hold_period.scatterMarker):
+        #         ax.scatter(scaterInfo[1], scaterInfo[2], color = scaterClr, s = 40, zorder = 10, label = scaterInfo[0], marker = m)
+        
+        #買賣點畫直線，應該用不到，需要用的話還要再修改
         # buy = [i for i in newDf.index if not np.isnan(newDf.at[i,'buy'])]
         # sell = [i for i in newDf.index if not np.isnan(newDf.at[i,'sell date'])]
         # plt.vlines(buy, color='darkorange', linestyle='-',alpha=0.5,label='buy',ymin=0,ymax=max(newDf['Price']))
@@ -151,10 +171,14 @@ class draw_hold_period:
                     mIndex.append(i)
                     month = nowMonth
             mIndex.append(len(newDf)-1)
-            
-        ax.set_xticks(mIndex, fontsize=draw_hold_period.allFontSize)
-        ax.set_xlabel('Date', fontsize=draw_hold_period.allFontSize)
-        ax.set_ylabel('Price', fontsize=draw_hold_period.allFontSize)
+        
+        if yearIndexes[1] - yearIndexes[0] < 20 and yearIndex == len(yearIndexes) - 1:
+            ax.set_xticks(mIndex[1 : ], fontsize = draw_hold_period.allFontSize)
+        else:
+            ax.set_xticks(mIndex, fontsize=draw_hold_period.allFontSize)
+        # plt.setp(ax.get_xticklabels(), ha = "left", rotation = -45)
+        ax.set_xlabel('Date', fontsize = draw_hold_period.allFontSize)
+        ax.set_ylabel('Price', fontsize = draw_hold_period.allFontSize)
         ax.grid()
         handles, labels = ax.get_legend_handles_labels()
         self.fig.legend(
@@ -164,10 +188,11 @@ class draw_hold_period:
             fancybox = True, shadow = False, 
             ncol = len(newDf.columns), 
             fontsize = draw_hold_period.allFontSize)
+        title = self.trainOrTest + '_' + file.replace('.csv', '_')
         if yearIndex == len(yearIndexes) - 1:
-            title = file.replace('.csv', '_') + df.index[0].split('-')[0] + '-' + df.index[len(df.index) - 1].split('-')[0]
+            title += df.index[0].split('-')[0] + '-' + df.index[len(df.index) - 1].split('-')[0]
         else:
-            title = file.replace('.csv', '_') + newDf.index[0].split('-')[0]
+            title += newDf.index[0].split('-')[0]
         print(title)
         self.fig.suptitle(title, 
             y = 1,
@@ -186,7 +211,7 @@ class draw_hold_period:
             else:
                 eachDf.to_csv(filename, mode = 'a', header = None)
     
-x = draw_hold_period('2021', 'RSI', 0, 0, 'all')
+x = draw_hold_period('2021', 'SMA', 1, 0, 'all')
 
 # def split_testIRR_draw(fileName, split, draw):
 #     print(fileName)
