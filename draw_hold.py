@@ -10,24 +10,28 @@ file_extension = '.csv'
 class draw_hold_period:
     fig = plt.figure(figsize = [21, 9], dpi = 300, constrained_layout = True)
     allFontSize = 15
-    scatterClr = ['black', 'lime', 'yellow']
-    scatterMarker = ['.', '.', '.']
     allCompanyTradeInfo = list()
     
     def __init__(self, year, tech, isTrain, isTradition, setCompany):
         self.tech = tech
         self.algoOrTrad = (lambda x : 'Tradition' if x == 1 else '')(isTradition)
         self.trainOrTest = (lambda x : 'train' if x == 1 else 'test')(isTrain)
+        self.scatterClr = {'buy' : 'black', 'sell date' : 'lime', f'sell {self.tech}' : 'yellow'}
+        self.scatterMarker = {'buy' : '.', 'sell date':'.', f'sell {self.tech}' : '.'}
+        
         os.chdir('../')
         parentFolder = os.getcwd()
         self.workRoot = [dir for dir in glob.glob(parentFolder + '/**/**/**') if 'exp_result' in dir and year in dir][0] + f'/result_{self.tech}/'
         self.workRoot = self.workRoot.replace(parentFolder + '/', '')
         os.chdir(self.workRoot)
+        
         if setCompany != 'all':
             self.allCompay = setCompany
         else:
             self.allCompay = [dir for dir in os.listdir() if os.path.isdir(dir)]
+        
         self.allBestHoldPath = [i + f'/{self.trainOrTest + self.algoOrTrad}BestHold/' for i in self.allCompay]
+        
         self.fig = draw_hold_period.fig
         gridNum = 24
         self.gs = self.fig.add_gridspec(
@@ -73,46 +77,45 @@ class draw_hold_period:
             self.plot_hold(file, df, newDf, yearIndexes, yearIndex, tradeInfo)
     
     def record_tradInfo(self, newDf):
-        tradeInfo = list()
+        tradeInfo = dict()
         
         buyX = [i for i in newDf.index if not np.isnan(newDf.at[i, 'buy'])]
         buyY = [i for i in newDf['buy'] if not np.isnan(i)]
         # buyX = newDf[newDf['buy'].notnull()].index
         # buyY = newDf['buy'].values[newDf.index.isin(buyX)]
-        tradeInfo.append(['buy', buyX, buyY])
+        tradeInfo.update({'buy': {'x' : buyX, 'y' : buyY}})
         
         sellDateX = [i for i in newDf.index if not np.isnan(newDf.at[i, 'sell date'])]
         sellDateY = [i for i in newDf['sell date'] if not np.isnan(i)]
-        tradeInfo.append(['sell date', sellDateX, sellDateY])
+        tradeInfo.update({'sell date': {'x' : sellDateX, 'y' : sellDateY}})
         
         sellTechConditionX = [i for i in newDf.index if not np.isnan(newDf.at[i, f'sell {self.tech}'])]
         sellTechConditionY = [i for i in newDf[f'sell {self.tech}'] if not np.isnan(i)]
-        tradeInfo.append([f'sell {self.tech}', sellTechConditionX, sellTechConditionY])
+        tradeInfo.update({f'sell {self.tech}' : {'x' : sellTechConditionX, 'y' : sellTechConditionY}})
         
         sellX = [i for i in newDf.index if not np.isnan(newDf.at[i, 'sell date']) or not np.isnan(newDf.at[i, f'sell {self.tech}'])]
         sellY = list(newDf['Price'].values[newDf.index.isin(sellX)])
-        tradeInfo.append(['sell', sellX, sellY])
-        
+        tradeInfo.update({'sell' : {'x' : sellX, 'y' : sellY}})
         return tradeInfo
     
     def make_tableDf(self, tradeInfo, yearIndexes, yearIndex):
         cellData =  list()
         
-        cellData.append(['buy Num', len(tradeInfo[0][1])])
-        cellData.append(['sell Num', len(tradeInfo[1][1]) + len(tradeInfo[2][1])])
-        cellData.append([tradeInfo[1][0], len(tradeInfo[1][1])])
-        cellData.append([tradeInfo[2][0], len(tradeInfo[2][1])])
+        cellData.append(['buy Num', len(tradeInfo['buy']['x'])])
+        cellData.append(['sell Num', len(tradeInfo['sell']['x'])])
+        cellData.append(['sell date', len(tradeInfo['sell date']['x'])])
+        cellData.append([f'sell {self.tech}', len(tradeInfo[f'sell {self.tech}']['x'])])
         
-        buyY = tradeInfo[0][2].copy()
-        sellY = tradeInfo[-1][2].copy()
+        buyY = tradeInfo['buy']['y'].copy()
+        sellY = tradeInfo['sell']['y'].copy()
         
-        if tradeInfo[0][1][0] > tradeInfo[-1][1][0]: #去年買今年賣,插入去年買buyY的尾巴
+        if tradeInfo['buy']['x'][0] > tradeInfo['sell']['x'][0]: #去年買今年賣,插入去年買buyY的尾巴
             buyY.insert(0, self.lastBuyY)
         
-        if tradeInfo[0][1][-1] > tradeInfo[-1][1][-1]: #今年買明年賣,記錄今年buyY的尾巴
-            self.lastBuyY = tradeInfo[0][2][-1]
+        if tradeInfo['buy']['x'][-1] > tradeInfo['sell']['x'][-1]: #今年買明年賣,記錄今年buyY的尾巴
+            self.lastBuyY = tradeInfo['buy']['y'][-1]
         tradeNum = len(sellY)
-            
+        
         winRate = str(len([i for i, j in zip(buyY, sellY) if j - i > 0]) / tradeNum * 100) + '%'
         cellData.append(['win rate', winRate])
         
@@ -150,8 +153,8 @@ class draw_hold_period:
         
         #打開可以畫點
         # if yearIndex != len(yearIndexes) - 1:
-        #     for scaterInfo, scaterClr, m in zip(tradeInfo[0 : -1], draw_hold_period.scatterClr, draw_hold_period.scatterMarker):
-        #         ax.scatter(scaterInfo[1], scaterInfo[2], color = scaterClr, s = 40, zorder = 10, label = scaterInfo[0], marker = m)
+        #     for key in (keys for keys in tradeInfo if keys != 'sell'):
+        #         ax.scatter(tradeInfo[key]['x'], tradeInfo[key]['y'], color = self.scatterClr[key], s = 40, zorder = 10, label = key, marker = self.scatterMarker[key])
         
         #買賣點畫直線，應該用不到，需要用的話還要再修改
         # buy = [i for i in newDf.index if not np.isnan(newDf.at[i,'buy'])]
