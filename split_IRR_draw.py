@@ -51,25 +51,32 @@ class split_IRR_draw:
         )
     allFontSize = 10
     
-    def __init__(self, fileName, split, drawBar, seperateTable, reorder):
+    def __init__(self, fileName, splitCSV, drawTable, drawBar, seperateTable, reorder):
         split_IRR_draw.seperateTable = seperateTable
         split_IRR_draw.reorder = reorder
         self.fileName = fileName + '.csv'
         self.dirName = 'split_' + self.fileName.split('.')[0]
+        
         print(self.fileName)
         self.process_fileName_dir()
-        if split:
-            self.split()
+        
+        if splitCSV:
+            self.split_csv()
         else:
             os.chdir(self.dirName)
+        
         self.allIRRFile = [i for i in glob.glob(f"*{file_extension}")]
         for FileIndex, file in enumerate(self.allIRRFile):
             processACompany = self.ProcessACompany(FileIndex, file)
-            fig, gs, gridNum = processACompany.start_draw_tables()
+            fig = split_IRR_draw.fig
+            gs, gridNum = processACompany.set_grid(fig)
+            if drawTable:
+                processACompany.start_draw_tables(fig, gs)
             if drawBar:
                 processACompany.draw_bar(fig, gs, gridNum)
             # break
         plt.close(split_IRR_draw.fig)
+        
         os.chdir(root)
         for dfIndex, eachDf in enumerate(self.tables):
             if dfIndex == 0:
@@ -77,7 +84,7 @@ class split_IRR_draw:
             else:
                 eachDf.to_csv(fileName.split('.')[0] + '_tables.csv', mode = 'a', header = None)
         
-    def split(self):
+    def split_csv(self):
         self.IRRdf = pd.read_csv(self.fileName, index_col = False)
         if True in self.IRRdf.columns.str.contains('^Unnamed'):
             self.IRRdf = self.IRRdf.loc[: , ~self.IRRdf.columns.str.contains('^Unnamed')]
@@ -129,6 +136,7 @@ class split_IRR_draw:
             else:
                 self.techNames = [y for x, y in enumerate(self.techNames) if x % 2 == 0]
             self.techNum = len(self.techNames)
+            self.titleTechNames = [i + '"' for i in ['"' + j for j in self.techNames]]
             self.mixedTech = (lambda x:True if len(x.split('_')) > 1 else False)(self.techNames[0])
             
         def process_IRRFile(self, FileIndex, file):
@@ -208,14 +216,7 @@ class split_IRR_draw:
         def compare(self, window, col1, col2):
             return self.df.at[window, self.df.columns[col1]] > self.df.at[window, self.df.columns[col2]]
         
-        def start_draw_tables(self):
-            #宣告fig
-            fig = split_IRR_draw.fig
-            self.titleTechNames = [i + '"' for i in ['"' + j for j in self.techNames]]
-            
-            #設定grid資訊
-            gs, gridNum = self.set_grid(fig)
-            
+        def start_draw_tables(self, fig, gs):
             #設定top table
             self.tableObjs = list()
             self.draw_tables(fig, gs)
@@ -225,8 +226,6 @@ class split_IRR_draw:
                 fig.savefig(self.company + '_table'  + '.png', dpi = fig.dpi, bbox_inches = 'tight')
                 plt.clf()
                 self.tableObjs.clear()
-            
-            return fig, gs, gridNum
         
         def draw_bar(self, fig, gs, gridNum):
             #設定每個bar的顏色及bar的最終寬度
@@ -419,4 +418,4 @@ class split_IRR_draw:
                 cell.set_color('lime')
                 cell.set_edgecolor('black')
 
-x = split_IRR_draw('train_IRR_IRR_sorted_SMA_2', split = True, drawBar = True, seperateTable = True, reorder = True)         
+x = split_IRR_draw('train_IRR_IRR_sorted_RSI_2', splitCSV = True, drawBar = True, drawTable = True, seperateTable = True, reorder = False)
