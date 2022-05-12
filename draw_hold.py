@@ -26,7 +26,7 @@ class draw_hold_period:
         os.chdir(self.workRoot)
         
         if setCompany != 'all':
-            self.allCompay = setCompany
+            self.allCompay = [setCompany]
         else:
             self.allCompay = [dir for dir in os.listdir() if os.path.isdir(dir)]
         
@@ -48,11 +48,22 @@ class draw_hold_period:
             holdFile = [i for i in glob.glob(f"*{file_extension}") if 'hold' in i]
             print(holdFile)
             for file in holdFile:
-                self.process_file_and_draw(file)
+                if not isTrain or self.check_symmetric(file):
+                    self.process_file_and_draw(file)
             for i in range(2):
                 os.chdir('../')
         self.output_tradeInfo()
 
+    def check_symmetric(self, file):
+        window = file.split('_')[1]
+        if not window[0].isnumeric:
+            if window[-1] == '#':
+                return False
+            else:
+                return window.split('2')[0] == window.split('2')[1]
+        windowType = [i for i in window if i == 'W' or i == 'D'][0]
+        return window.split(windowType)[0] == window.split(windowType)[1]
+    
     def process_file_and_draw(self, file):
         df = pd.read_csv(file, index_col = 0)
         yearIndexes = []
@@ -64,12 +75,12 @@ class draw_hold_period:
                 year = nowYear
         yearIndexes.append(len(df))
         for yearIndex in range(len(yearIndexes)):
-        # for yearIndex in range(6, 7):
+        # for yearIndex in range(5, 6):
             if yearIndex == len(yearIndexes) - 1:
                 newDf = df.iloc[yearIndexes[0] : yearIndexes[-1]]
             else:
-                newDf = df.iloc[yearIndexes[yearIndex] : yearIndexes[yearIndex+1]]
-                
+                newDf = df.iloc[yearIndexes[yearIndex] : yearIndexes[yearIndex + 1]]
+            
             tradeInfo = self.record_tradInfo(newDf)
             tableDf = self.make_tableDf(tradeInfo, yearIndexes, yearIndex)
             
@@ -79,21 +90,21 @@ class draw_hold_period:
     def record_tradInfo(self, newDf):
         tradeInfo = dict()
         
-        buyX = [i for i in newDf.index if not np.isnan(newDf.at[i, 'buy'])]
-        buyY = [i for i in newDf['buy'] if not np.isnan(i)]
+        buyX = [i for i in newDf.index if not pd.isna(newDf.at[i, 'buy'])]
+        buyY = [i for i in newDf['buy'] if not pd.isna(i)]
         # buyX = newDf[newDf['buy'].notnull()].index
         # buyY = newDf['buy'].values[newDf.index.isin(buyX)]
         tradeInfo.update({'buy': {'x' : buyX, 'y' : buyY}})
         
-        sellDateX = [i for i in newDf.index if not np.isnan(newDf.at[i, 'sell date'])]
-        sellDateY = [i for i in newDf['sell date'] if not np.isnan(i)]
+        sellDateX = [i for i in newDf.index if not pd.isna(newDf.at[i, 'sell date'])]
+        sellDateY = [i for i in newDf['sell date'] if not pd.isna(i)]
         tradeInfo.update({'sell date': {'x' : sellDateX, 'y' : sellDateY}})
         
-        sellTechConditionX = [i for i in newDf.index if not np.isnan(newDf.at[i, f'sell {self.tech}'])]
-        sellTechConditionY = [i for i in newDf[f'sell {self.tech}'] if not np.isnan(i)]
+        sellTechConditionX = [i for i in newDf.index if not pd.isna(newDf.at[i, f'sell {self.tech}'])]
+        sellTechConditionY = [i for i in newDf[f'sell {self.tech}'] if not pd.isna(i)]
         tradeInfo.update({f'sell {self.tech}' : {'x' : sellTechConditionX, 'y' : sellTechConditionY}})
         
-        sellX = [i for i in newDf.index if not np.isnan(newDf.at[i, 'sell date']) or not np.isnan(newDf.at[i, f'sell {self.tech}'])]
+        sellX = [i for i in newDf.index if not pd.isna(newDf.at[i, 'sell date']) or not pd.isna(newDf.at[i, f'sell {self.tech}'])]
         sellY = list(newDf['Price'].values[newDf.index.isin(sellX)])
         tradeInfo.update({'sell' : {'x' : sellX, 'y' : sellY}})
         return tradeInfo
@@ -157,8 +168,8 @@ class draw_hold_period:
         #         ax.scatter(tradeInfo[key]['x'], tradeInfo[key]['y'], color = self.scatterClr[key], s = 40, zorder = 10, label = key, marker = self.scatterMarker[key])
         
         #買賣點畫直線，應該用不到，需要用的話還要再修改
-        # buy = [i for i in newDf.index if not np.isnan(newDf.at[i,'buy'])]
-        # sell = [i for i in newDf.index if not np.isnan(newDf.at[i,'sell date'])]
+        # buy = [i for i in newDf.index if not pd.isna(newDf.at[i,'buy'])]
+        # sell = [i for i in newDf.index if not pd.isna(newDf.at[i,'sell date'])]
         # plt.vlines(buy, color='darkorange', linestyle='-',alpha=0.5,label='buy',ymin=0,ymax=max(newDf['Price']))
         # plt.vlines(sell, color='purple', linestyle='-',alpha=0.5,label='sell date',ymin=0,ymax=max(newDf['Price']))
         
@@ -214,7 +225,7 @@ class draw_hold_period:
             else:
                 eachDf.to_csv(filename, mode = 'a', header = None)
     
-x = draw_hold_period('2021', 'SMA', 1, 0, 'all')
+x = draw_hold_period('2021', 'SMA', True, False, 'all')
 
 # def split_testIRR_draw(fileName, split, draw):
 #     print(fileName)
@@ -530,8 +541,8 @@ x = draw_hold_period('2021', 'SMA', 1, 0, 'all')
 #                 ax.scatter(newDf['Date'],newDf['buy'],c='darkorange', s=8, zorder=10,label='buy')
 #                 ax.scatter(newDf['Date'],newDf['sell'],c='purple', s=8, zorder=10,label='sell')
                 
-#                 # buy = [i for i in newDf.index if not np.isnan(newDf.at[i,'buy'])]
-#                 # sell = [i for i in newDf.index if not np.isnan(newDf.at[i,'sell'])]
+#                 # buy = [i for i in newDf.index if not pd.isna(newDf.at[i,'buy'])]
+#                 # sell = [i for i in newDf.index if not pd.isna(newDf.at[i,'sell'])]
 #                 # ax.vlines(buy, color='darkorange', linestyle='-',alpha=0.5,label='buy',ymin=0,ymax=max(newDf['Price']))
 #                 # ax.vlines(sell, color='purple', linestyle='-',alpha=0.5,label='sell',ymin=0,ymax=max(newDf['Price']))
 #                 mIndex = []
