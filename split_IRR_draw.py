@@ -121,9 +121,6 @@ class split_IRR_draw:
             for colIndex in self.df.columns:
                 for rowIndex in self.df.index:
                     self.df.at[rowIndex, colIndex] *= 100
-            if split_IRR_draw.reorder:
-                split_IRR_draw.reorderList.reverse()
-                self.df = self.df.reindex(split_IRR_draw.reorderList)
         
         def find_techNames(self):
             self.techNames = [name.split(' ')[0] for name in self.df.columns if 'B&H' not in name]
@@ -137,7 +134,14 @@ class split_IRR_draw:
         def process_IRRFile(self, FileIndex, file):
             # table資料
             for colIndex, col in enumerate(self.df.columns):
-                self.IRRData.update({col: np.array([x for i, x in enumerate(self.df[col]) if self.df.index[i] != 'B&H'])})
+                self.df.sort_values(by = col, ascending = False, inplace = True)
+                self.IRRData.update({col: pd.Series({self.df.index[i] : x for i, x in enumerate(self.df[col]) if self.df.index[i] != 'B&H'})})
+            
+            if split_IRR_draw.reorder:
+                split_IRR_draw.reorderList.reverse()
+                self.df = self.df.reindex(split_IRR_draw.reorderList)
+            else:
+                self.df.sort_values(by = self.df.columns[0], ascending = False, inplace = True)
             
             for i in range(self.techNum):
                 self.add_info(self.techNames[i], '', i * 2, i * 2 + 1, False)
@@ -163,6 +167,8 @@ class split_IRR_draw:
         def add_info(self, comp1, comp2, col1, col2, techCompare):
             if not techCompare:
                 data = [
+                    [f'{comp1} algo best/worst w', self.IRRData[self.df.columns[col1]].index[0] + '/' + self.IRRData[self.df.columns[col1]].index[-1]],
+                    [f'{comp1} trad best/worst w', self.IRRData[self.df.columns[col2]].index[0] + '/' + self.IRRData[self.df.columns[col2]].index[-1]],
                     [f'{comp1} highest algo IRR', max(self.IRRData[self.df.columns[col1]])],
                     # [f'{comp1} highest IRR diff algo/trad', max(self.IRRData[self.df.columns[col1]]) - max(self.IRRData[self.df.columns[col2]])], 
                     # [f'{comp1} algo win rate', len([i for i, j in zip(self.IRRData[self.df.columns[col1]], self.IRRData[self.df.columns[col2]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100],
@@ -308,15 +314,16 @@ class split_IRR_draw:
                 fancybox = True, shadow = False, 
                 ncol = len(self.df.columns), 
                 fontsize = split_IRR_draw.allFontSize)
-            figTitle = self.company + " " + split_IRR_draw.trainOrTest + ' ' +  ' '.join(self.titleTechNames) + ' IRR rank'
+            figTitle = self.company + (lambda x : ' reorder ' if x else ' ')(split_IRR_draw.reorder) + split_IRR_draw.trainOrTest + ' ' +  ' '.join(self.titleTechNames) + ' IRR rank'
             fig.suptitle(figTitle, 
                         y = (lambda tableObjSize:1.07 if tableObjSize > 1 else 1.03)(len(self.tableObjs)), 
                         fontsize = split_IRR_draw.allFontSize + 5)
             # fig.subplots_adjust(hspace=1)
+            figName = self.company + (lambda x : '_reorder' if x else '')(split_IRR_draw.reorder)
             if split_IRR_draw.seperateTable:
-                figName = self.company + '_all_IRR_no_table'  + '.png'
+                figName += '_all_IRR_no_table'  + '.png'
             else:
-                figName = self.company + '_all_IRR'  + '.png'
+                figName += '_all_IRR'  + '.png'
             fig.savefig(figName, dpi = fig.dpi, bbox_inches = 'tight')
             plt.clf()
         
@@ -394,14 +401,22 @@ class split_IRR_draw:
                 cellCompare.append(eachTable[1, colNum])
             compare = -1
             for cell in cellCompare:
-                if float(cell.get_text()._text[:-1]) > compare:
-                    compare = float(cell.get_text()._text[:-1])
+                try:
+                    cellData = float(cell.get_text()._text[:-1])
+                except ValueError:
+                    continue
+                if cellData > compare:
+                    compare = cellData
             bigCell = list()
             for cell in cellCompare:
-                if float(cell.get_text()._text[:-1]) == compare:
+                try:
+                    cellData = float(cell.get_text()._text[:-1])
+                except ValueError:
+                    continue
+                if cellData == compare:
                     bigCell.append(cell)
             for cell in bigCell:
                 cell.set_color('lime')
                 cell.set_edgecolor('black')
 
-x = split_IRR_draw('train_IRR_IRR_sorted_SMA_2', split = 0, drawBar = 1, seperateTable = 1, reorder = 0)                
+x = split_IRR_draw('train_IRR_IRR_sorted_SMA_2', split = True, drawBar = True, seperateTable = True, reorder = True)         
