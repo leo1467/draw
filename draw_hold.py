@@ -94,37 +94,38 @@ class draw_hold_period:
         buyY = [i for i in newDf['buy'] if not pd.isna(i)]
         # buyX = newDf[newDf['buy'].notnull()].index
         # buyY = newDf['buy'].values[newDf.index.isin(buyX)]
-        tradeInfo.update({'buy': {'x' : buyX, 'y' : buyY}})
+        tradeInfo.update({'buy': pd.Series({x : y for x, y in zip(buyX, buyY)}, dtype = 'float64')})
         
         sellDateX = [i for i in newDf.index if not pd.isna(newDf.at[i, 'sell date'])]
         sellDateY = [i for i in newDf['sell date'] if not pd.isna(i)]
-        tradeInfo.update({'sell date': {'x' : sellDateX, 'y' : sellDateY}})
+        tradeInfo.update({'sell date': pd.Series({x : y for x, y in zip(sellDateX, sellDateY)}, dtype = 'float64')})
         
         sellTechConditionX = [i for i in newDf.index if not pd.isna(newDf.at[i, f'sell {self.tech}'])]
         sellTechConditionY = [i for i in newDf[f'sell {self.tech}'] if not pd.isna(i)]
-        tradeInfo.update({f'sell {self.tech}' : {'x' : sellTechConditionX, 'y' : sellTechConditionY}})
+        tradeInfo.update({f'sell {self.tech}': pd.Series({x : y for x, y in zip(sellTechConditionX, sellTechConditionY)}, dtype = 'float64')})
         
         sellX = [i for i in newDf.index if not pd.isna(newDf.at[i, 'sell date']) or not pd.isna(newDf.at[i, f'sell {self.tech}'])]
         sellY = list(newDf['Price'].values[newDf.index.isin(sellX)])
-        tradeInfo.update({'sell' : {'x' : sellX, 'y' : sellY}})
+        tradeInfo.update({'sell': pd.Series({x : y for x, y in zip(sellX, sellY)}, dtype = 'float64')})
+        
         return tradeInfo
     
     def make_tableDf(self, tradeInfo, yearIndexes, yearIndex):
         cellData =  list()
         
-        cellData.append(['buy Num', len(tradeInfo['buy']['x'])])
-        cellData.append(['sell Num', len(tradeInfo['sell']['x'])])
-        cellData.append(['sell date', len(tradeInfo['sell date']['x'])])
-        cellData.append([f'sell {self.tech}', len(tradeInfo[f'sell {self.tech}']['x'])])
+        cellData.append(['buy Num', len(tradeInfo['buy'].index)])
+        cellData.append(['sell Num', len(tradeInfo['sell'].index)])
+        cellData.append(['sell date', len(tradeInfo['sell date'].index)])
+        cellData.append([f'sell {self.tech}', len(tradeInfo[f'sell {self.tech}'].index)])
         
-        buyY = tradeInfo['buy']['y'].copy()
-        sellY = tradeInfo['sell']['y'].copy()
+        buyY = tradeInfo['buy'].copy()
+        sellY = tradeInfo['sell'].copy()
         
-        if tradeInfo['buy']['x'][0] > tradeInfo['sell']['x'][0]: #去年買今年賣,插入去年買buyY的尾巴
-            buyY.insert(0, self.lastBuyY)
+        if tradeInfo['buy'].index[0] > tradeInfo['sell'].index[0]: #去年買今年賣,插入去年買buyY的尾巴
+            buyY = pd.concat([self.lastBuyY, buyY])
         
-        if tradeInfo['buy']['x'][-1] > tradeInfo['sell']['x'][-1]: #今年買明年賣,記錄今年buyY的尾巴
-            self.lastBuyY = tradeInfo['buy']['y'][-1]
+        if tradeInfo['buy'].index[-1] > tradeInfo['sell'].index[-1]: #今年買明年賣,記錄今年buyY的尾巴
+            self.lastBuyY = pd.Series({tradeInfo['buy'].index[-1] : tradeInfo['buy'].values[-1]})
         tradeNum = len(sellY)
         
         winRate = str(len([i for i, j in zip(buyY, sellY) if j - i > 0]) / tradeNum * 100) + '%'
