@@ -1,5 +1,6 @@
 from math import floor
 from math import ceil
+from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -115,7 +116,7 @@ class split_IRR_draw:
         def __init__(self, FileIndex, file):
             self.table = []
             self.tableColumns = list()
-            self.cellData = list()
+            self.cellData = dict()
             self.IRRData = dict()
             self.tableObjs = list()
             print(file)
@@ -170,51 +171,55 @@ class split_IRR_draw:
                 self.windowChooseDf = pd.DataFrame(windowChoose, columns = [self.df.index], index = [self.techNames[1 : ]])
                 self.df = self.df.drop(columns = [col for col in self.df.columns[self.techNum * 2: ]])
             
-            self.cellData = np.array([['%.2f' % elem + '%'] if type(elem) != type(str()) else [elem] for elem in self.cellData])
-            self.tableDf = pd.DataFrame(self.cellData.reshape(1, len(self.tableColumns)), columns = self.tableColumns)
-            self.tableDf.rename(index = { 0: self.company }, inplace = True)
+            for cellIndex in self.cellData:
+                try:
+                    cellData = str(round(float(self.cellData[cellIndex]), 2)) + '%'
+                except ValueError:
+                    continue
+                self.cellData[cellIndex] = cellData
+            self.tableDf = pd.DataFrame([self.cellData])
             split_IRR_draw.tables.append(self.tableDf)
                 
         def add_info(self, comp1, comp2, col1, col2, techCompare):
             if not techCompare:
-                data = [
-                    [f'{comp1} algo best/worst w', self.IRRData[self.df.columns[col1]].index[0] + '/' + self.IRRData[self.df.columns[col1]].index[-1]],
-                    [f'{comp1} trad best/worst w', self.IRRData[self.df.columns[col2]].index[0] + '/' + self.IRRData[self.df.columns[col2]].index[-1]],
-                    [f'{comp1} highest algo IRR', max(self.IRRData[self.df.columns[col1]])],
+                data = {
+                    f'{comp1} algo best/worst w': self.IRRData[self.df.columns[col1]].index[0] + '/' + self.IRRData[self.df.columns[col1]].index[-1],
+                    f'{comp1} trad best/worst w': self.IRRData[self.df.columns[col2]].index[0] + '/' + self.IRRData[self.df.columns[col2]].index[-1],
+                    f'{comp1} highest algo IRR': max(self.IRRData[self.df.columns[col1]]),
                     # [f'{comp1} highest IRR diff algo/trad', max(self.IRRData[self.df.columns[col1]]) - max(self.IRRData[self.df.columns[col2]])], 
                     # [f'{comp1} algo win rate', len([i for i, j in zip(self.IRRData[self.df.columns[col1]], self.IRRData[self.df.columns[col2]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100],
-                    [f'{comp1} algo avg IRR', np.average(self.IRRData[self.df.columns[col1]])], 
-                    [f'{comp1} trad avg IRR', np.average(self.IRRData[self.df.columns[col2]])], 
+                    f'{comp1} algo avg IRR': np.average(self.IRRData[self.df.columns[col1]]), 
+                    f'{comp1} trad avg IRR': np.average(self.IRRData[self.df.columns[col2]]), 
                     # [f'{comp1} highest IRR diff algo/B&H', max(self.IRRData[self.df.columns[col1]]) - self.df.at['B&H', self.df.columns[col1]]], 
                     # [f'{comp1} highest IRR diff trad/B&H', max(self.IRRData[self.df.columns[col2]]) - self.df.at['B&H', self.df.columns[col2]]], 
-                    [f'{comp1} algo "Y" avg IRR', np.average([IRR for w, IRR in zip(self.df.index, self.df[self.df.columns[col1]]) if w[0] == 'Y'])], 
-                    [f'{comp1} algo "H" "Q" "M" avg IRR', np.average([IRR for w, IRR in zip(self.df.index, self.df[self.df.columns[col1]]) if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M'])], 
-                    [f'{comp1} algo "D" "W" avg IRR', np.average([IRR for w, IRR in zip(self.df.index, self.df[self.df.columns[col1]]) if 'W' in w or 'D' in w])], 
-                    ]
+                    f'{comp1} algo "Y" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, self.df[self.df.columns[col1]]) if w[0] == 'Y']), 
+                    f'{comp1} algo "H" "Q" "M" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, self.df[self.df.columns[col1]]) if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']), 
+                    f'{comp1} algo "D" "W" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, self.df[self.df.columns[col1]]) if 'W' in w or 'D' in w]), 
+                }
                 self.dataColLen = len(data)
             else:
-                data = [
+                data = {
                     # [f'highest IRR diff of algo {comp1}/{comp2}', max(self.IRRData[self.df.columns[col1]]) - max(self.IRRData[self.df.columns[col2]])],
                     # [f'highest IRR diff of trad {comp1}/{comp2}', max(self.IRRData[self.df.columns[col1+1]]) - max(self.IRRData[self.df.columns[col2 + 1]])],
-                    [f'algo win rate {comp1}/{comp2}', len([i for i, j in zip(self.IRRData[self.df.columns[col1]], self.IRRData[self.df.columns[col2]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100], 
-                    [f'trad win rate {comp1}/{comp2}', len([i for i, j in zip(self.IRRData[self.df.columns[col1 + 1]], self.IRRData[self.df.columns[col2 + 1]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100],
-                ]
+                    f'algo win rate {comp1}/{comp2}': len([i for i, j in zip(self.IRRData[self.df.columns[col1]], self.IRRData[self.df.columns[col2]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100, 
+                    f'trad win rate {comp1}/{comp2}': len([i for i, j in zip(self.IRRData[self.df.columns[col1 + 1]], self.IRRData[self.df.columns[col2 + 1]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100,
+                }
                 self.frontLen = len(data)
-                backData = [
-                    [f'{comp1} algo "Y" win', str(len([w for w in self.df.index if self.compare(w, col1, col2) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y']))],
-                    [f'{comp1} algo "H" "Q" "M" win', str(len([w for w in self.df.index if self.compare(w, col1, col2) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']))],
-                    [f'{comp1} algo "D" "W" win', str(len([w for w in self.df.index if self.compare(w, col1, col2) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)]))],
+                backData = {
+                    f'{comp1} algo "Y" win': str(len([w for w in self.df.index if self.compare(w, col1, col2) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y'])),
+                    f'{comp1} algo "H" "Q" "M" win': str(len([w for w in self.df.index if self.compare(w, col1, col2) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M'])),
+                    f'{comp1} algo "D" "W" win': str(len([w for w in self.df.index if self.compare(w, col1, col2) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)])),
                     
-                    [f'{comp1} trad "Y" win', str(len([w for w in self.df.index if self.compare(w, col1+1, col2+1) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y']))],
-                    [f'{comp1} trad "H" "Q" "M" win', str(len([w for w in self.df.index if self.compare(w, col1+1, col2+1) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']))],
-                    [f'{comp1} trad "D" "W" win', str(len([w for w in self.df.index if self.compare(w, col1+1, col2+1) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)]))],
-                    ]
-                for i in backData:
-                    data.append(i)
+                    f'{comp1} trad "Y" win': str(len([w for w in self.df.index if self.compare(w, col1+1, col2+1) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y'])),
+                    f'{comp1} trad "H" "Q" "M" win': str(len([w for w in self.df.index if self.compare(w, col1+1, col2+1) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M'])),
+                    f'{comp1} trad "D" "W" win': str(len([w for w in self.df.index if self.compare(w, col1+1, col2+1) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)])),
+                }
+                self.backLen = len(backData)
+                for elem in backData.items():
+                    data.update({elem})
                 self.finalCompareLen = len(data)
-            for row in data:
-                self.tableColumns.append(row[0])
-                self.cellData.append(row[1])
+            for elem in data.items():
+                self.cellData.update({elem})
         
         def compare(self, window, col1, col2):
             return self.df.at[window, self.df.columns[col1]] > self.df.at[window, self.df.columns[col2]]
@@ -420,4 +425,4 @@ class split_IRR_draw:
                 cell.set_color('lime')
                 cell.set_edgecolor('black')
 
-x = split_IRR_draw('train_IRR_IRR_sorted_SMA_2', splitCSV = True, drawBar = True, drawTable = False, seperateTable = True, reorder = True)
+x = split_IRR_draw('train_IRR_IRR_sorted_RSI_2', splitCSV = False, drawBar = True, drawTable = True, seperateTable = True, reorder = False)
