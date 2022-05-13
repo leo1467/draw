@@ -1,3 +1,4 @@
+from math import floor
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -75,14 +76,14 @@ class draw_hold_period:
                 year = nowYear
         yearIndexes.append(len(df))
         for yearIndex in range(len(yearIndexes)):
-        # for yearIndex in range(5, 6):
+        # for yearIndex in range(len(yearIndexes) - 1, len(yearIndexes)):
             if yearIndex == len(yearIndexes) - 1:
                 newDf = df.iloc[yearIndexes[0] : yearIndexes[-1]]
             else:
                 newDf = df.iloc[yearIndexes[yearIndex] : yearIndexes[yearIndex + 1]]
             
             tradeInfo = self.record_tradInfo(newDf)
-            tableDf = self.make_tableDf(tradeInfo, yearIndexes, yearIndex)
+            tableDf = self.make_tableDf(tradeInfo, yearIndexes, yearIndex, newDf)
             
             self.draw_table(tableDf)
             self.plot_hold(file, df, newDf, yearIndexes, yearIndex, tradeInfo)
@@ -110,7 +111,7 @@ class draw_hold_period:
         
         return tradeInfo
     
-    def make_tableDf(self, tradeInfo, yearIndexes, yearIndex):
+    def make_tableDf(self, tradeInfo, yearIndexes, yearIndex, newDf):
         cellData =  list()
         
         cellData.append(['buy Num', len(tradeInfo['buy'].index)])
@@ -130,6 +131,15 @@ class draw_hold_period:
         
         winRate = str(len([i for i, j in zip(buyY, sellY) if j - i > 0]) / tradeNum * 100) + '%'
         cellData.append(['win rate', winRate])
+        
+        profit = 10000000.0
+        for i, j in zip(buyY, sellY):
+            stockNum = floor(profit / float(i))
+            profit = profit - stockNum * float(i)
+            profit += stockNum * float(j)
+        IRR = pow(profit / 10000000, 1 / len(newDf))
+        IRR = round((pow(IRR, 251.7) - 1) * 100, 2)
+        cellData.append(['IRR', str(IRR) + '%'])
         
         tableCol = [elem[0] for elem in cellData]
         cellData = np.array([elem[1] for elem in cellData]).reshape(1, len(tableCol))
@@ -203,16 +213,17 @@ class draw_hold_period:
             fancybox = True, shadow = False, 
             ncol = len(newDf.columns), 
             fontsize = draw_hold_period.allFontSize)
-        title = self.trainOrTest + '_' + file.replace('.csv', '_')
+        fileTitle = self.tech + '_' + self.trainOrTest + '_' + file.replace('.csv', '_')
         if yearIndex == len(yearIndexes) - 1:
-            title += df.index[0].split('-')[0] + '-' + df.index[len(df.index) - 1].split('-')[0]
+            fileTitle += df.index[0].split('-')[0] + '-' + df.index[len(df.index) - 1].split('-')[0]
         else:
-            title += newDf.index[0].split('-')[0]
-        print(title)
-        self.fig.suptitle(title, 
+            fileTitle += newDf.index[0].split('-')[0]
+        print(fileTitle)
+        figTitle = fileTitle.replace('_', ' ')
+        self.fig.suptitle(figTitle, 
             y = 1,
             fontsize = draw_hold_period.allFontSize)
-        self.fig.savefig(title +'.png', dpi = draw_hold_period.fig.dpi, bbox_inches = 'tight')
+        self.fig.savefig(fileTitle +'.png', dpi = draw_hold_period.fig.dpi, bbox_inches = 'tight')
         plt.clf()
     
     def output_tradeInfo(self):
@@ -226,7 +237,7 @@ class draw_hold_period:
             else:
                 eachDf.to_csv(filename, mode = 'a', header = None)
     
-x = draw_hold_period('2021', 'SMA', True, False, 'all')
+x = draw_hold_period(year='2021', tech='RSI', isTrain=True, isTradition=False, setCompany='AAPL')
 
 # def split_testIRR_draw(fileName, split, draw):
 #     print(fileName)
