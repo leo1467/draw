@@ -95,10 +95,7 @@ class split_IRR_draw:
             self.IRRdf.to_csv(self.fileName, index = None)
         self.IRRdf = self.IRRdf.T.reset_index().T.reset_index(drop = True)
         os.chdir(self.dirName)
-        index = []
-        for row, content in enumerate(self.IRRdf[0]):
-            if content[0] == '=':
-                index.append(row)
+        index = [i for i in self.IRRdf.index if self.IRRdf.at[i, 0][0] == '=']
         index.append(len(self.IRRdf))
         for cellIndex in range(len(index) - 1):
             companyName = self.IRRdf.at[index[cellIndex], self.IRRdf.columns[0]].replace('=', '')
@@ -425,4 +422,4 @@ class split_IRR_draw:
                 cell.set_color('lime')
                 cell.set_edgecolor('black')
 
-x = split_IRR_draw('train_IRR_IRR_sorted_RSI_2', splitCSV = False, drawBar = True, drawTable = True, seperateTable = True, reorder = False)
+x = split_IRR_draw('train_IRR_IRR_sorted_RSI_2', splitCSV = True, drawBar = True, drawTable = True, seperateTable = True, reorder = False)
