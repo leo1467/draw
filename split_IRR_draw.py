@@ -21,6 +21,7 @@ class split_IRR_draw:
         [['5D4', '5D3', '5D2', '4D4', '4D3', '4D2', '3D3', '3D2', '2D2'], 'w']
         ]
     reorderList = [
+        'B&H',
         'YYY2YYY', 'YYY2YY', 'YYY2YH', 'YYY2Y', 'YYY2H', 'YYY2Q', 'YYY2M', 
         'YY2YY', 'YY2YH', 'YY2Y', 'YY2H', 'YY2Q', 'YY2M', 
         'YH2YH', 'YH2Y', 'YH2H', 'YH2Q', 'YH2M', 
@@ -54,6 +55,8 @@ class split_IRR_draw:
     def __init__(self, fileName, splitCSV, drawTable, drawBar, seperateTable, reorder):
         split_IRR_draw.seperateTable = seperateTable
         split_IRR_draw.reorder = reorder
+        if split_IRR_draw.reorder:
+            split_IRR_draw.reorderList.reverse()
         self.fileName = fileName + '.csv'
         self.dirName = 'split_' + self.fileName.split('.')[0]
         
@@ -114,6 +117,7 @@ class split_IRR_draw:
             self.tableColumns = list()
             self.cellData = list()
             self.IRRData = dict()
+            self.tableObjs = list()
             print(file)
             if file.split('.')[1] == 'csv':
                 self.process_df(file)
@@ -146,7 +150,6 @@ class split_IRR_draw:
                 self.IRRData.update({col: pd.Series({self.df.index[i] : x for i, x in enumerate(self.df[col]) if self.df.index[i] != 'B&H'})})
             
             if split_IRR_draw.reorder:
-                split_IRR_draw.reorderList.reverse()
                 self.df = self.df.reindex(split_IRR_draw.reorderList)
             else:
                 self.df.sort_values(by = self.df.columns[0], ascending = False, inplace = True)
@@ -218,7 +221,6 @@ class split_IRR_draw:
         
         def start_draw_tables(self, fig, gs):
             #設定top table
-            self.tableObjs = list()
             self.draw_tables(fig, gs)
             if split_IRR_draw.seperateTable:
                 fig.suptitle(self.company + " " + split_IRR_draw.trainOrTest + ' ' +  ' '.join(self.titleTechNames) + ' compare table', 
@@ -418,4 +420,4 @@ class split_IRR_draw:
                 cell.set_color('lime')
                 cell.set_edgecolor('black')
 
-x = split_IRR_draw('train_IRR_IRR_sorted_RSI_2', splitCSV = True, drawBar = True, drawTable = True, seperateTable = True, reorder = False)
+x = split_IRR_draw('train_IRR_IRR_sorted_SMA_2', splitCSV = True, drawBar = True, drawTable = False, seperateTable = True, reorder = True)

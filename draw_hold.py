@@ -144,9 +144,8 @@ class draw_hold_period:
         IRR = pow(profit / 10000000, 1 / len(newDf))
         IRR = round((pow(IRR, 251.7) - 1) * 100, 2)
         cellData.update({'IRR' : str(IRR) + '%'})
-        cellData = pd.Series(cellData)
         
-        tableDf = pd.DataFrame(cellData).T
+        tableDf = pd.DataFrame([cellData])
         
         if yearIndex == len(yearIndexes) - 1:
             self.allCompanyTradeInfo.append(tableDf)
