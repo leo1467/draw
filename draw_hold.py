@@ -177,8 +177,13 @@ class draw_hold_period:
         
         #打開可以畫點
         # if yearIndex != len(yearIndexes) - 1:
-        #     for key in (keys for keys in tradeInfo if keys != 'sell'):
-        #         ax.scatter(tradeInfo[key]['x'], tradeInfo[key]['y'], color = self.scatterClr[key], s = 40, zorder = 10, label = key, marker = self.scatterMarker[key])
+        #     for index in tradeInfo.index[:-1]:
+        #         ax.scatter(tradeInfo[index].index, tradeInfo[index].values, 
+        #                    color = self.scatterClr[index], 
+        #                    s = 40, 
+        #                    zorder = 10, 
+        #                    label = index, 
+        #                    marker = self.scatterMarker[index])
         
         #買賣點畫直線，應該用不到，需要用的話還要再修改
         # buy = [i for i in newDf.index if not pd.isna(newDf.at[i,'buy'])]
