@@ -178,28 +178,33 @@ class split_IRR_draw:
             split_IRR_draw.tables.append(self.tableDf)
                 
         def add_info(self, comp1, comp2, col1, col2, techCompare):
+            IRRDataAlgoCol1 = self.IRRData[self.df.columns[col1]]
+            IRRDataAlgoCol2 = self.IRRData[self.df.columns[col2]]
+            IRRDataTradCol1 = self.IRRData[self.df.columns[col1 + 1]]
+            IRRDataTradCol2 = self.IRRData[self.df.columns[col2 + 1]]
+            dfCol1 = self.df[self.df.columns[col1]]
             if not techCompare:
                 data = {
-                    f'{comp1} algo best/worst w': self.IRRData[self.df.columns[col1]].index[0] + '/' + self.IRRData[self.df.columns[col1]].index[-1],
-                    f'{comp1} trad best/worst w': self.IRRData[self.df.columns[col2]].index[0] + '/' + self.IRRData[self.df.columns[col2]].index[-1],
-                    f'{comp1} highest algo IRR': max(self.IRRData[self.df.columns[col1]]),
-                    # [f'{comp1} highest IRR diff algo/trad', max(self.IRRData[self.df.columns[col1]]) - max(self.IRRData[self.df.columns[col2]])], 
-                    # [f'{comp1} algo win rate', len([i for i, j in zip(self.IRRData[self.df.columns[col1]], self.IRRData[self.df.columns[col2]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100],
-                    f'{comp1} algo avg IRR': np.average(self.IRRData[self.df.columns[col1]]), 
-                    f'{comp1} trad avg IRR': np.average(self.IRRData[self.df.columns[col2]]), 
-                    # [f'{comp1} highest IRR diff algo/B&H', max(self.IRRData[self.df.columns[col1]]) - self.df.at['B&H', self.df.columns[col1]]], 
-                    # [f'{comp1} highest IRR diff trad/B&H', max(self.IRRData[self.df.columns[col2]]) - self.df.at['B&H', self.df.columns[col2]]], 
-                    f'{comp1} algo "Y" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, self.df[self.df.columns[col1]]) if w[0] == 'Y']), 
-                    f'{comp1} algo "H" "Q" "M" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, self.df[self.df.columns[col1]]) if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']), 
-                    f'{comp1} algo "D" "W" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, self.df[self.df.columns[col1]]) if 'W' in w or 'D' in w]), 
+                    f'{comp1} algo best/worst w': IRRDataAlgoCol1.index[0] + '/' + IRRDataAlgoCol1.index[-1],
+                    f'{comp1} trad best/worst w': IRRDataAlgoCol2.index[0] + '/' + IRRDataAlgoCol2.index[-1],
+                    f'{comp1} highest algo IRR': max(IRRDataAlgoCol1),
+                    # [f'{comp1} highest IRR diff algo/trad', max(IRRDataCol1) - max(IRRDataCol2)], 
+                    # [f'{comp1} algo win rate', len([i for i, j in zip(IRRDataCol1, IRRDataCol2) if i > j]) / len(IRRDataCol1) * 100],
+                    f'{comp1} algo avg IRR': np.average(IRRDataAlgoCol1), 
+                    f'{comp1} trad avg IRR': np.average(IRRDataAlgoCol2), 
+                    # [f'{comp1} highest IRR diff algo/B&H', max(IRRDataCol1) - self.df.at['B&H', self.df.columns[col1]]], 
+                    # [f'{comp1} highest IRR diff trad/B&H', max(IRRDataCol2) - self.df.at['B&H', self.df.columns[col2]]], 
+                    f'{comp1} algo "Y" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if w[0] == 'Y']), 
+                    f'{comp1} algo "H" "Q" "M" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']), 
+                    f'{comp1} algo "D" "W" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if 'W' in w or 'D' in w]), 
                 }
                 self.dataColLen = len(data)
             else:
                 data = {
-                    # [f'highest IRR diff of algo {comp1}/{comp2}', max(self.IRRData[self.df.columns[col1]]) - max(self.IRRData[self.df.columns[col2]])],
-                    # [f'highest IRR diff of trad {comp1}/{comp2}', max(self.IRRData[self.df.columns[col1+1]]) - max(self.IRRData[self.df.columns[col2 + 1]])],
-                    f'algo win rate {comp1}/{comp2}': len([i for i, j in zip(self.IRRData[self.df.columns[col1]], self.IRRData[self.df.columns[col2]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100, 
-                    f'trad win rate {comp1}/{comp2}': len([i for i, j in zip(self.IRRData[self.df.columns[col1 + 1]], self.IRRData[self.df.columns[col2 + 1]]) if i > j]) / len(self.IRRData[self.df.columns[col1]]) * 100,
+                    # [f'highest IRR diff of algo {comp1}/{comp2}', max(IRRDataCol1) - max(IRRDataCol2)],
+                    # [f'highest IRR diff of trad {comp1}/{comp2}', max(self.IRRData[self.df.columns[col1+1]]) - max(IRRDataTradCol2)],
+                    f'algo win rate {comp1}/{comp2}': len([i for i, j in zip(IRRDataAlgoCol1, IRRDataAlgoCol2) if i > j]) / len(IRRDataAlgoCol1) * 100, 
+                    f'trad win rate {comp1}/{comp2}': len([i for i, j in zip(IRRDataTradCol1, IRRDataTradCol2) if i > j]) / len(IRRDataAlgoCol1) * 100,
                 }
                 self.frontLen = len(data)
                 backData = {
@@ -225,7 +230,7 @@ class split_IRR_draw:
             # 設定top table
             self.draw_tables(fig, gs)
             if split_IRR_draw.seperateTable:
-                fig.suptitle(self.company + " " + split_IRR_draw.trainOrTest + ' ' +  ' '.join(self.titleTechNames) + ' compare table', 
+                fig.suptitle(self.company + " " + split_IRR_draw.trainOrTest + ' ' + ' '.join(self.titleTechNames) + ' compare table', 
                     fontsize=split_IRR_draw.allFontSize + 8)
                 fig.savefig(self.company + '_table'  + '.png', dpi=fig.dpi, bbox_inches='tight')
                 plt.clf()
