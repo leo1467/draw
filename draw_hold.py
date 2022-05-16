@@ -216,8 +216,8 @@ class draw_hold_period:
         self.fig.legend(
             handles, labels, 
             loc='upper center', 
-            bbox_to_ancho=(0.5, 0), 
-            fancybox=True,shadow=False, 
+            bbox_to_anchor=(0.5, 0), 
+            fancybox=True, shadow=False, 
             ncol=len(newDf.columns), 
             fontsize=draw_hold_period.allFontSize)
         fileTitle = self.tech + '_' + self.trainOrTest + '_' + file.replace('.csv', '_')
@@ -238,10 +238,10 @@ class draw_hold_period:
         filename = f'{self.trainOrTest + self.algoOrTrad}' + f'_tradeInfo_{self.tech}.csv'
         for dfIndex, eachDf in enumerate(self.allCompanyTradeInfo):
             # eachDf.insert(0, 'company', self.allCompay[dfIndex])  # add new column to first position
-            eachDf.rename(index={0:self.allCompay[dfIndex]}, inplace=True)
+            eachDf.rename(index={0: self.allCompay[dfIndex]}, inplace=True)
             if dfIndex == 0:
                 eachDf.to_csv(filename)
             else:
                 eachDf.to_csv(filename, mode='a', header=None)
     
-x = draw_hold_period(year='2021', tech='RSI', isTrain=True, isTradition=False, setCompany='all')       
+x = draw_hold_period(year='2021', tech='SMA', isTrain=True, isTradition=False, setCompany='all')       

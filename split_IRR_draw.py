@@ -1,6 +1,5 @@
 from math import floor
 from math import ceil
-from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -40,7 +39,7 @@ class split_IRR_draw:
     BHColor = 'r'
     totalBarWidth = 0.80
     # 儲存全部table資料
-    tables = []
+    tables = {}
     # 設定figure大小
     # plt.rcParams['figure.figsize'] = (21, 9)
     fig = plt.figure(
@@ -53,15 +52,15 @@ class split_IRR_draw:
         )
     allFontSize = 10
     
-    def __init__(self, fileName, splitIRRFile, drawTable, drawBar, seperateTable, reorder):
+    def __init__(self, IRRFileName, splitIRRFile, drawTable, drawBar, seperateTable, reorder):
         split_IRR_draw.seperateTable = seperateTable
         split_IRR_draw.reorder = reorder
         if split_IRR_draw.reorder:
             split_IRR_draw.reorderList.reverse()
-        self.fileName = fileName + '.csv'
-        self.dirName = 'split_' + self.fileName.split('.')[0]
+        self.IRRFileName = IRRFileName + '.csv'
+        self.dirName = 'split_' + self.IRRFileName.split('.')[0]
         
-        print(self.fileName)
+        print(self.IRRFileName)
         self.process_fileName_dir()
         
         if splitIRRFile:
@@ -82,17 +81,19 @@ class split_IRR_draw:
         plt.close(split_IRR_draw.fig)
         
         os.chdir(root)
-        for dfIndex, eachDf in enumerate(self.tables):
+        OutputTableFileName = IRRFileName.split('.')[0] + '_tables.csv'
+        for dfIndex, companyName in enumerate(self.tables):
+            self.tables[companyName].rename(index={0: companyName}, inplace=True)
             if dfIndex == 0:
-                eachDf.to_csv(fileName.split('.')[0] + '_tables.csv')
+                self.tables[companyName].to_csv(OutputTableFileName)
             else:
-                eachDf.to_csv(fileName.split('.')[0] + '_tables.csv', mode='a', header=None)
+                self.tables[companyName].to_csv(OutputTableFileName, mode='a', header=None)
         
     def split_csv(self):
-        self.IRRdf = pd.read_csv(self.fileName, index_col=False)
+        self.IRRdf = pd.read_csv(self.IRRFileName, index_col=False)
         if True in self.IRRdf.columns.str.contains('^Unnamed'):
             self.IRRdf = self.IRRdf.loc[:, ~self.IRRdf.columns.str.contains('^Unnamed')]
-            self.IRRdf.to_csv(self.fileName, index=None)
+            self.IRRdf.to_csv(self.IRRFileName, index=None)
         self.IRRdf = self.IRRdf.T.reset_index().T.reset_index(drop=True)
         os.chdir(self.dirName)
         index = [i for i in self.IRRdf.index if self.IRRdf.at[i, 0][0] == '=']
@@ -103,9 +104,9 @@ class split_IRR_draw:
             self.IRRdf[index[cellIndex]:index[cellIndex + 1]].to_csv(companyName + '_IRR.csv', header=None, index=None)
                 
     def process_fileName_dir(self):
-        fileNameList = self.fileName.split('.')[0].split('_')
-        split_IRR_draw.allTitle = '_'.join(fileNameList[fileNameList.index('sorted') + 1:])
-        split_IRR_draw.trainOrTest = fileNameList[0]
+        IRRFileNameList = self.IRRFileName.split('.')[0].split('_')
+        split_IRR_draw.allTitle = '_'.join(IRRFileNameList[IRRFileNameList.index('sorted') + 1:])
+        split_IRR_draw.trainOrTest = IRRFileNameList[0]
         if not os.path.isdir(self.dirName):
             os.mkdir(self.dirName)
     
@@ -175,7 +176,7 @@ class split_IRR_draw:
                     continue
                 self.cellData[cellIndex] = cellData
             self.tableDf = pd.DataFrame([self.cellData])
-            split_IRR_draw.tables.append(self.tableDf)
+            split_IRR_draw.tables.update({self.company: self.tableDf})
                 
         def add_info(self, comp1, comp2, col1, col2, techCompare):
             IRRDataAlgoCol1 = self.IRRData[self.df.columns[col1]]
@@ -427,4 +428,4 @@ class split_IRR_draw:
                 cell.set_color('lime')
                 cell.set_edgecolor('black')
 
-x = split_IRR_draw('train_IRR_IRR_sorted_RSI_2', splitIRRFile=False, drawBar=True, drawTable=False, seperateTable=True, reorder=True)
+x = split_IRR_draw('train_IRR_IRR_sorted_SMA_2', splitIRRFile=False, drawBar=False, drawTable=False, seperateTable=True, reorder=True)
