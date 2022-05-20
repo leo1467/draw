@@ -52,8 +52,8 @@ class split_IRR_draw:
         )
     allFontSize = 10
     
-    def __init__(self, IRRFileName, splitIRRFile, drawTable, drawBar, seperateTable, reorder):
-        split_IRR_draw.seperateTable = seperateTable
+    def __init__(self, IRRFileName, splitIRRFile, drawTable, drawBar, seperateTable, reorder, setCompany):
+        split_IRR_draw.seperateTable = seperateTable or drawBar
         split_IRR_draw.reorder = reorder
         if split_IRR_draw.reorder:
             split_IRR_draw.reorderList.reverse()
@@ -68,7 +68,11 @@ class split_IRR_draw:
         else:
             os.chdir(self.dirName)
         
-        self.allIRRFile = [i for i in glob.glob(f"*{file_extension}")]
+        if setCompany == 'all':
+            self.allIRRFile = [i for i in glob.glob(f"*{file_extension}")]
+        else:
+            self.allIRRFile = [i for i in glob.glob(f"*{file_extension}") if setCompany in i]
+        
         for FileIndex, file in enumerate(self.allIRRFile):
             processACompany = self.ProcessACompany(FileIndex, file)
             fig = split_IRR_draw.fig
@@ -145,7 +149,10 @@ class split_IRR_draw:
         def process_IRRFile(self, FileIndex, file):
             # table資料
             for colIndex, col in enumerate(self.df.columns):
-                self.df.sort_values(by=col, ascending=False, inplace=True)
+                if colIndex % 2 == 0:
+                    self.df.sort_values(by=col, ascending=False, inplace=True)
+                else:
+                    self.df.sort_values(by=self.df.columns[0], ascending=False, inplace=True)
                 self.IRRData.update({col: pd.Series({self.df.index[i]: x for i, x in enumerate(self.df[col]) if self.df.index[i] != 'B&H'})})
             
             if split_IRR_draw.reorder:
@@ -428,4 +435,4 @@ class split_IRR_draw:
                 cell.set_color('lime')
                 cell.set_edgecolor('black')
 
-x = split_IRR_draw('train_IRR_IRR_sorted_SMA_2', splitIRRFile=False, drawBar=False, drawTable=False, seperateTable=True, reorder=True)
+x = split_IRR_draw('train_IRR_IRR_sorted_RSI_2', splitIRRFile=False, drawBar=False, drawTable=True, seperateTable=True, reorder=False, setCompany='all')
