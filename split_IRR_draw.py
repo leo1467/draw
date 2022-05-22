@@ -35,7 +35,7 @@ class split_IRR_draw:
         '3D3', '3D2', 
         '2D2']
     # 設定bar屬性
-    barColorSet = ['steelblue', 'darkorange', 'paleturquoise', 'wheat', 'lightcyan', 'lightyellow']
+    barColorSet = ['steelblue', 'darkorange', 'paleturquoise', 'wheat', 'lightcyan', 'lightyellow', 'red']
     BHColor = 'r'
     totalBarWidth = 0.80
     # 儲存全部table資料
@@ -92,7 +92,7 @@ class split_IRR_draw:
                 self.tables[companyName].to_csv(OutputTableFileName)
             else:
                 self.tables[companyName].to_csv(OutputTableFileName, mode='a', header=None)
-        
+    
     def split_csv(self):
         self.IRRdf = pd.read_csv(self.IRRFileName, index_col=False)
         if True in self.IRRdf.columns.str.contains('^Unnamed'):
@@ -106,7 +106,7 @@ class split_IRR_draw:
             companyName = self.IRRdf.at[index[cellIndex], self.IRRdf.columns[0]].replace('=', '')
             self.IRRdf.at[index[cellIndex], self.IRRdf.columns[0]] = 'window'
             self.IRRdf[index[cellIndex]:index[cellIndex + 1]].to_csv(companyName + '_IRR.csv', header=None, index=None)
-                
+    
     def process_fileName_dir(self):
         IRRFileNameList = self.IRRFileName.split('.')[0].split('_')
         split_IRR_draw.allTitle = '_'.join(IRRFileNameList[IRRFileNameList.index('sorted') + 1:])
@@ -121,12 +121,13 @@ class split_IRR_draw:
             self.cellData = dict()
             self.IRRData = dict()
             self.tableObjs = list()
+            self.tableNum = 0
             print(file)
             if file.split('.')[1] == 'csv':
                 self.process_df(file)
                 self.find_techNames()
                 self.process_IRRFile(FileIndex, file)
-                
+
         def process_df(self, file):
             # df前處理
             self.company = file.split('_')[0]
@@ -138,14 +139,14 @@ class split_IRR_draw:
         
         def find_techNames(self):
             self.techNames = [name.split(' ')[0] for name in self.df.columns if 'B&H' not in name]
-            if len(self.techNames[0].split('_')) > 1:
+            if len(self.techNames[0].split('_')) > 1 and 'choose' in self.df.columns[-1]:
                 self.techNames = [y for x, y in enumerate(self.techNames[:-5]) if x % 2 == 0]
             else:
                 self.techNames = [y for x, y in enumerate(self.techNames) if x % 2 == 0]
             self.techNum = len(self.techNames)
             self.titleTechNames = [i + '"' for i in ['"' + j for j in self.techNames]]
             self.mixedTech = (lambda x: True if len(x.split('_')) > 1 else False)(self.techNames[0])
-            
+        
         def process_IRRFile(self, FileIndex, file):
             # table資料
             for colIndex, col in enumerate(self.df.columns):
@@ -167,7 +168,7 @@ class split_IRR_draw:
                 for techIndex, row in zip(range(1, self.techNum), range(2, self.techNum * 2, 2)):
                     self.add_info(self.techNames[0], self.techNames[techIndex], 0, row, True)
             
-            if self.mixedTech and len(self.df.columns) > self.techNum * 2:
+            if self.mixedTech and 'choose' in self.df.columns[-1]:
                 windowChoose = list()
                 for techIndex, col in zip(range(1, self.techNum), range(self.techNum * 2, len(self.df.columns), 2)):
                     windowChoose.append(self.df[self.df.columns[col]] / self.df['window num'] * 100)
@@ -184,7 +185,7 @@ class split_IRR_draw:
                 self.cellData[cellIndex] = cellData
             self.tableDf = pd.DataFrame([self.cellData])
             split_IRR_draw.tables.update({self.company: self.tableDf})
-                
+        
         def add_info(self, comp1, comp2, col1, col2, techCompare):
             IRRDataAlgoCol1 = self.IRRData[self.df.columns[col1]]
             IRRDataAlgoCol2 = self.IRRData[self.df.columns[col2]]
@@ -202,9 +203,9 @@ class split_IRR_draw:
                     f'{comp1} trad avg IRR': np.average(IRRDataAlgoCol2), 
                     # [f'{comp1} highest IRR diff algo/B&H', max(IRRDataCol1) - self.df.at['B&H', self.df.columns[col1]]], 
                     # [f'{comp1} highest IRR diff trad/B&H', max(IRRDataCol2) - self.df.at['B&H', self.df.columns[col2]]], 
-                    f'{comp1} algo "Y" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if w[0] == 'Y']), 
-                    f'{comp1} algo "H" "Q" "M" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']), 
-                    f'{comp1} algo "D" "W" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if 'W' in w or 'D' in w]), 
+                    # f'{comp1} algo "Y" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if w[0] == 'Y']), 
+                    # f'{comp1} algo "H" "Q" "M" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']), 
+                    # f'{comp1} algo "D" "W" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if 'W' in w or 'D' in w]), 
                 }
                 self.dataColLen = len(data)
             else:
@@ -230,9 +231,33 @@ class split_IRR_draw:
                 self.finalCompareLen = len(data)
             for elem in data.items():
                 self.cellData.update({elem})
+            self.tableNum += 1
         
         def compare(self, window, col1, col2):
             return self.df.at[window, self.df.columns[col1]] > self.df.at[window, self.df.columns[col2]]
+        
+        def set_grid(self, fig):
+            gridNum = (lambda x: 24 if x == 1 else 25)(split_IRR_draw.seperateTable)
+            if self.techNum == 1:
+                hspace = -0.9
+            elif self.techNum == 2:
+                hspace = -0.57
+            elif self.techNum == 3:
+                hspace = -0.25
+            
+            if split_IRR_draw.seperateTable:
+                gs = fig.add_gridspec(gridNum, 1)
+            else:
+                gs = fig.add_gridspec(
+                    gridNum, 1, 
+                    wspace=0, 
+                    hspace=hspace, 
+                    top=1, 
+                    bottom=0, 
+                    # left=0.17, 
+                    # right=0.845
+                    )
+            return gs, gridNum
         
         def start_draw_tables(self, fig, gs):
             # 設定top table
@@ -243,6 +268,75 @@ class split_IRR_draw:
                 fig.savefig(self.company + '_table'  + '.png', dpi=fig.dpi, bbox_inches='tight')
                 plt.clf()
                 self.tableObjs.clear()
+        
+        def draw_tables(self, fig, gs):
+            for i, j in zip(range(0, self.dataColLen * self.techNum, self.dataColLen), range(self.techNum)):
+                tableAx = fig.add_subplot(gs[j, :])
+                tableAx.axis('off')
+                self.draw_table(tableAx, i, i + self.dataColLen)
+            
+            # 比較table中不同指標誰比較大，並著色
+            if len(self.techNames) > 1:
+                for colNum in range(self.dataColLen):
+                    self.find_big_cell(colNum)
+
+            # 設定比較table
+            if len(self.techNames) > 1 and not self.mixedTech:
+                for i in range(self.tableNum):
+                    tableAx = fig.add_subplot(gs[self.techNum + i, :])
+                    tableAx.axis('off')
+                    startCol = self.dataColLen * self.techNum + i * self.finalCompareLen
+                    endCol = startCol + self.finalCompareLen
+                    self.draw_table(tableAx, startCol, endCol)
+        
+        def draw_table(self, tableAx, startCol, endCol):
+            tmpTableDf = self.tableDf.iloc[:, startCol:endCol]
+            topTable = tableAx.table(
+                colLabels=tmpTableDf.columns, 
+                cellText=tmpTableDf.values, 
+                # loc='best', 
+                cellLoc='center', 
+                colColours=['silver'] * (len(tmpTableDf.columns)), 
+                bbox=[0, 1, 1, 2]
+                )
+            self.tableObjs.append(topTable)
+            # for colIndex in range(len(tableDf.columns)):  #設定cell text顏色
+            #     topTable[0, colIndex].get_text().set_color('white')
+            # topTable.auto_set_column_width(col=list(range(len(self.tableDf.columns))))
+            topTable.auto_set_font_size(False)
+            topTable.set_fontsize('large')  # Valid font size are xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
+            if len(self.tableObjs) > self.techNum:
+                # topTable.auto_set_column_width(col=list(range(len(self.tableDf.columns))))
+                for i in range(self.backLen):
+                    if i < 3:
+                        topTable[0, self.frontLen + i].set_color('lightsteelblue')
+                    else:
+                        topTable[0, self.frontLen + i].set_color('bisque')
+                    topTable[0, self.frontLen + i].set_edgecolor('black')
+        
+        def find_big_cell(self, colNum):
+            cellCompare = list()
+            for eachTable in self.tableObjs:
+                cellCompare.append(eachTable[1, colNum])
+            compare = -1
+            for cell in cellCompare:
+                try:
+                    cellData = float(cell.get_text()._text[:-1])
+                except ValueError:
+                    continue
+                if cellData > compare:
+                    compare = cellData
+            bigCell = list()
+            for cell in cellCompare:
+                try:
+                    cellData = float(cell.get_text()._text[:-1])
+                except ValueError:
+                    continue
+                if cellData == compare:
+                    bigCell.append(cell)
+            for cell in bigCell:
+                cell.set_color('lime')
+                cell.set_edgecolor('black')
         
         def draw_bar(self, fig, gs, gridNum):
             # 設定每個bar的顏色及bar的最終寬度
@@ -343,96 +437,10 @@ class split_IRR_draw:
             fig.savefig(figName, dpi=fig.dpi, bbox_inches='tight')
             plt.clf()
         
-        def set_grid(self, fig):
-            gridNum = (lambda x: 24 if x == 1 else 25)(split_IRR_draw.seperateTable)
-            if self.techNum == 1:
-                hspace = -0.9
-            elif self.techNum == 2:
-                hspace = -0.57
-            elif self.techNum == 3:
-                hspace = -0.25
-            
-            if split_IRR_draw.seperateTable:
-                gs = fig.add_gridspec(gridNum, 1)
-            else:
-                gs = fig.add_gridspec(
-                    gridNum, 1, 
-                    wspace=0, 
-                    hspace=hspace, 
-                    top=1, 
-                    bottom=0, 
-                    # left=0.17, 
-                    # right=0.845
-                    )
-            return gs, gridNum
-                
-        def draw_tables(self, fig, gs):
-            for i, j in zip(range(0, self.dataColLen * self.techNum, self.dataColLen), range(self.techNum)):
-                tableAx = fig.add_subplot(gs[j, :])
-                tableAx.axis('off')
-                self.draw_table(tableAx, i, i + self.dataColLen)
-            
-            # 比較table中不同指標誰比較大，並著色
-            if len(self.techNames) > 1:
-                for colNum in range(self.dataColLen):
-                    self.find_big_cell(colNum)
-
-            # 設定比較table
-            if len(self.techNames) > 1:
-                for i in range(self.techNum - 1):
-                    tableAx = fig.add_subplot(gs[self.techNum + i, :])
-                    tableAx.axis('off')
-                    startCol = self.dataColLen * self.techNum + i * self.finalCompareLen
-                    endCol = startCol + self.finalCompareLen
-                    self.draw_table(tableAx, startCol, endCol)
-        
-        def draw_table(self, tableAx, startCol, endCol):
-            tmpTableDf = self.tableDf.iloc[:, startCol:endCol]
-            topTable = tableAx.table(
-                colLabels=tmpTableDf.columns, 
-                cellText=tmpTableDf.values, 
-                # loc='best', 
-                cellLoc='center', 
-                colColours=['silver'] * (len(tmpTableDf.columns)), 
-                bbox=[0, 1, 1, 2]
-                )
-            self.tableObjs.append(topTable)
-            # for colIndex in range(len(tableDf.columns)):  #設定cell text顏色
-            #     topTable[0, colIndex].get_text().set_color('white')
-            # topTable.auto_set_column_width(col=list(range(len(self.tableDf.columns))))
-            topTable.auto_set_font_size(False)
-            topTable.set_fontsize('large')  # Valid font size are xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
-            if len(self.tableObjs) > self.techNum:
-                # topTable.auto_set_column_width(col=list(range(len(self.tableDf.columns))))
-                for i in range(6):
-                    if i < 3:
-                        topTable[0, self.frontLen + i].set_color('lightsteelblue')
-                    else:
-                        topTable[0, self.frontLen + i].set_color('bisque')
-                    topTable[0, self.frontLen + i].set_edgecolor('black')
-        
-        def find_big_cell(self, colNum):
-            cellCompare = list()
-            for eachTable in self.tableObjs:
-                cellCompare.append(eachTable[1, colNum])
-            compare = -1
-            for cell in cellCompare:
-                try:
-                    cellData = float(cell.get_text()._text[:-1])
-                except ValueError:
-                    continue
-                if cellData > compare:
-                    compare = cellData
-            bigCell = list()
-            for cell in cellCompare:
-                try:
-                    cellData = float(cell.get_text()._text[:-1])
-                except ValueError:
-                    continue
-                if cellData == compare:
-                    bigCell.append(cell)
-            for cell in bigCell:
-                cell.set_color('lime')
-                cell.set_edgecolor('black')
-
-x = split_IRR_draw('train_IRR_IRR_sorted_RSI_2', splitIRRFile=False, drawBar=False, drawTable=True, seperateTable=True, reorder=False, setCompany='all')
+x = split_IRR_draw(IRRFileName='train_IRR_name_sorted_SMA_RSI_3', 
+                   splitIRRFile=True, 
+                   drawBar=True, 
+                   drawTable=True, 
+                   seperateTable=True, 
+                   reorder=False, 
+                   setCompany='AAPL')
