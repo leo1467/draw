@@ -133,7 +133,7 @@ class draw_hold_period:
             self.lastBuyY = pd.Series({tradeInfo['buy'].index[-1]:tradeInfo['buy'].values[-1]})
         tradeNum = len(sellY)
         
-        winRate = str(len([i for i, j in zip(buyY, sellY) if j - i > 0]) / tradeNum * 100) + '%'
+        winRate = str(round(len([i for i, j in zip(buyY, sellY) if j - i > 0]) / tradeNum * 100, 2)) + '%'
         cellData.update({'win rate': winRate})
         
         profit = 10000000.0
@@ -244,4 +244,4 @@ class draw_hold_period:
             else:
                 eachDf.to_csv(filename, mode='a', header=None)
     
-x = draw_hold_period(year='2021', tech='SMA', isTrain=True, isTradition=False, setCompany='all')       
+x = draw_hold_period(year='2021', tech='RSI', isTrain=True, isTradition=False, setCompany='all')       

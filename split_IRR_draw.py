@@ -193,7 +193,8 @@ class split_IRR_draw:
                 data = {
                     f'{comp1} algo best/worst w': IRRDataAlgoCol1.index[0] + '/' + IRRDataAlgoCol1.index[-1],
                     f'{comp1} trad best/worst w': IRRDataAlgoCol2.index[0] + '/' + IRRDataAlgoCol2.index[-1],
-                    f'{comp1} highest algo IRR': IRRDataAlgoCol1[0],
+                    f'{comp1} highest algo IRR': IRRDataAlgoCol1[0], 
+                    f'{comp1} highest trad IRR': IRRDataTradCol1[0], 
                     # [f'{comp1} highest IRR diff algo/trad', IRRDataCol1[0] - IRRDataCol2[0]], 
                     # [f'{comp1} algo win rate', len([i for i, j in zip(IRRDataCol1, IRRDataCol2) if i >= j]) / len(IRRDataCol1) * 100],
                     f'{comp1} algo avg IRR': np.average(IRRDataAlgoCol1), 
@@ -211,7 +212,10 @@ class split_IRR_draw:
                     # f'highest IRR diff of trad {comp1}/{comp2}': max(self.IRRData[self.df.columns[col1 + 1]]) - max(IRRDataTradCol2),
                     # f'algo win rate {comp1}/{comp2}': len([i for i, j in zip(IRRDataAlgoCol1.sort_index(), IRRDataAlgoCol2.sort_index()) if i >= j]) / len(IRRDataAlgoCol1) * 100, 
                     # f'trad win rate {comp1}/{comp2}': len([i for i, j in zip(IRRDataTradCol1.sort_index(), IRRDataTradCol2.sort_index()) if i >= j]) / len(IRRDataTradCol1) * 100, 
-                    # f'IRR gain {comp1}/{comp2} ': (IRRDataAlgoCol1[0] - IRRDataAlgoCol2[0]) / IRRDataAlgoCol2[0] * 100, 
+                    f'algo IRR gain {comp1}/{comp2} ': (IRRDataAlgoCol1[0] - IRRDataAlgoCol2[0]) / IRRDataAlgoCol2[0] * 100, 
+                    f'algo IRR average gain {comp1}/{comp2}': (np.average(IRRDataAlgoCol1) - np.average(IRRDataAlgoCol2)) / np.average(IRRDataAlgoCol2) * 100,
+                    f'trad IRR gain {comp1}/{comp2} ': (IRRDataTradCol1[0] - IRRDataTradCol2[0]) / IRRDataTradCol2[0] * 100, 
+                    f'trad IRR average gain {comp1}/{comp2}': (np.average(IRRDataTradCol1) - np.average(IRRDataTradCol2)) / np.average(IRRDataTradCol2) * 100,
                 }
                 self.frontLen = len(data)
                 backData = {
@@ -439,8 +443,8 @@ class split_IRR_draw:
             plt.clf()
         
 x = split_IRR_draw(IRRFileName='train_IRR_name_sorted_SMA_RSI_3', 
-                   splitIRRFile=True, 
-                   drawBar=True, 
+                   splitIRRFile=False, 
+                   drawBar=False, 
                    drawTable=True, 
                    seperateTable=True, 
                    reorder=False, 
