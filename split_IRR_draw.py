@@ -210,8 +210,8 @@ class split_IRR_draw:
                 data = {
                     # f'highest IRR diff of algo {comp1}/{comp2}': IRRDataCol1[0] - IRRDataCol2[0],
                     # f'highest IRR diff of trad {comp1}/{comp2}': max(self.IRRData[self.df.columns[col1 + 1]]) - max(IRRDataTradCol2),
-                    # f'algo win rate {comp1}/{comp2}': len([i for i, j in zip(IRRDataAlgoCol1.sort_index(), IRRDataAlgoCol2.sort_index()) if i >= j]) / len(IRRDataAlgoCol1) * 100, 
-                    # f'trad win rate {comp1}/{comp2}': len([i for i, j in zip(IRRDataTradCol1.sort_index(), IRRDataTradCol2.sort_index()) if i >= j]) / len(IRRDataTradCol1) * 100, 
+                    f'algo win rate {comp1}/{comp2}': len([i for i, j in zip(IRRDataAlgoCol1.sort_index(), IRRDataAlgoCol2.sort_index()) if i >= j]) / len(IRRDataAlgoCol1) * 100, 
+                    f'trad win rate {comp1}/{comp2}': len([i for i, j in zip(IRRDataTradCol1.sort_index(), IRRDataTradCol2.sort_index()) if i >= j]) / len(IRRDataTradCol1) * 100, 
                     f'algo IRR gain {comp1}/{comp2} ': (IRRDataAlgoCol1[0] - IRRDataAlgoCol2[0]) / IRRDataAlgoCol2[0] * 100, 
                     f'algo IRR average gain {comp1}/{comp2}': (np.average(IRRDataAlgoCol1) - np.average(IRRDataAlgoCol2)) / np.average(IRRDataAlgoCol2) * 100,
                     f'trad IRR gain {comp1}/{comp2} ': (IRRDataTradCol1[0] - IRRDataTradCol2[0]) / IRRDataTradCol2[0] * 100, 
@@ -299,7 +299,8 @@ class split_IRR_draw:
                 cellText=tmpTableDf.values, 
                 # loc='best', 
                 cellLoc='center', 
-                colColours=['silver'] * (len(tmpTableDf.columns)), 
+                # colColours=['silver'] * (len(tmpTableDf.columns)), 
+                colColours=[(lambda x: 'silver' if len(self.tableObjs) < self.techNum else 'wheat')(0)] * (len(tmpTableDf.columns)), 
                 bbox=[0, 1, 1, 2]
                 )
             self.tableObjs.append(topTable)

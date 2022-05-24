@@ -227,10 +227,13 @@ class draw_hold_period:
             fileTitle += newDf.index[0].split('-')[0]
         print(fileTitle)
         figTitle = fileTitle.replace('_', ' ')
-        self.fig.suptitle(figTitle, 
+        if len(self.tech.split('_')) > 1:
+            figTitle = f'{self.tech} ' + ' '.join(figTitle.split(' ')[len(self.tech.split('_')):])
+        self.fig.suptitle(
+            figTitle, 
             y=1,
             fontsize=draw_hold_period.allFontSize)
-        self.fig.savefig(fileTitle +'.png', dpi=draw_hold_period.fig.dpi, bbox_inches='tight')
+        self.fig.savefig(f'{fileTitle}.png', dpi=draw_hold_period.fig.dpi, bbox_inches='tight')
         plt.clf()
     
     def output_tradeInfo(self):
@@ -244,4 +247,4 @@ class draw_hold_period:
             else:
                 eachDf.to_csv(filename, mode='a', header=None)
     
-x = draw_hold_period(year='2021', tech='RSI', isTrain=True, isTradition=False, setCompany='all')       
+x = draw_hold_period(year='2021', tech='SMA_RSI', isTrain=True, isTradition=False, setCompany='all')       
