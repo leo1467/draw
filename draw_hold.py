@@ -11,10 +11,11 @@ file_extension = '.csv'
 class draw_hold_period:
     fig = plt.figure(figsize=[21, 9], dpi=300, constrained_layout=True)
     allFontSize = 15
-    allCompanyTradeInfo = list()
+    companiesTradeInfo = dict()
     
-    def __init__(self, year, tech, isTrain, isTradition, setCompany):
+    def __init__(self, year, tech, isTrain, isTradition, draw, setCompany):
         self.tech = tech
+        self.draw = draw
         self.algoOrTrad = (lambda x: 'Tradition' if x == 1 else '')(isTradition)
         self.trainOrTest = (lambda x: 'train' if x == 1 else 'test')(isTrain)
         self.scatterClr = {'buy': 'black', 'sell date': 'lime', f'sell {self.tech}': 'yellow'}
@@ -66,6 +67,7 @@ class draw_hold_period:
         return window.split(windowType)[0] == window.split(windowType)[1]
     
     def process_file_and_draw(self, file):
+        companyName = file.split('_')[0]
         df = pd.read_csv(file, index_col=0)
         yearIndexes = []
         year = 0
@@ -75,6 +77,8 @@ class draw_hold_period:
                 yearIndexes.append(i)
                 year = nowYear
         yearIndexes.append(len(df))
+        if not self.draw:
+            yearIndexes = [yearIndexes[0], yearIndexes[-1]]
         for yearIndex in range(len(yearIndexes)):
         # for yearIndex in range(len(yearIndexes) - 1, len(yearIndexes)):
             if yearIndex == len(yearIndexes) - 1:
@@ -83,10 +87,11 @@ class draw_hold_period:
                 newDf = df.iloc[yearIndexes[yearIndex]:yearIndexes[yearIndex + 1]]
             
             tradeInfo = self.record_tradInfo(newDf)
-            tableDf = self.make_tableDf(tradeInfo, yearIndexes, yearIndex, newDf)
+            tableDf = self.make_tableDf(tradeInfo, yearIndexes, yearIndex, newDf, companyName)
             
-            self.draw_table(tableDf)
-            self.plot_hold(file, df, newDf, yearIndexes, yearIndex, tradeInfo)
+            if self.draw:
+                self.draw_table(tableDf)
+                self.plot_hold(file, df, newDf, yearIndexes, yearIndex, tradeInfo)
     
     def record_tradInfo(self, newDf):
         tradeInfo = dict()
@@ -115,7 +120,7 @@ class draw_hold_period:
     def make_Series(self, title, x, y):
         return {title : pd.Series(y, index=x, dtype='float64')}
     
-    def make_tableDf(self, tradeInfo, yearIndexes, yearIndex, newDf):
+    def make_tableDf(self, tradeInfo, yearIndexes, yearIndex, newDf, companyName):
         cellData =  dict()
         
         cellData.update({'buy Num': len(tradeInfo['buy'].index)})
@@ -148,7 +153,7 @@ class draw_hold_period:
         tableDf = pd.DataFrame([cellData])
         
         if yearIndex == len(yearIndexes) - 1:
-            self.allCompanyTradeInfo.append(tableDf)
+            self.companiesTradeInfo.update({companyName: tableDf})
         
         return tableDf
     
@@ -239,12 +244,18 @@ class draw_hold_period:
     def output_tradeInfo(self):
         os.chdir('../')
         filename = f'{self.trainOrTest + self.algoOrTrad}' + f'_tradeInfo_{self.tech}.csv'
-        for dfIndex, eachDf in enumerate(self.allCompanyTradeInfo):
-            # eachDf.insert(0, 'company', self.allCompay[dfIndex])  # add new column to first position
-            eachDf.rename(index={0: self.allCompay[dfIndex]}, inplace=True)
+        for dfIndex, companyName in enumerate(self.companiesTradeInfo):
+            # eachDf.insert(0, 'company', eachDfIndex)  # add new column to first position
+            self.companiesTradeInfo[companyName].rename(index={0: companyName}, inplace=True)
             if dfIndex == 0:
-                eachDf.to_csv(filename)
+                self.companiesTradeInfo[companyName].to_csv(filename)
             else:
-                eachDf.to_csv(filename, mode='a', header=None)
+                self.companiesTradeInfo[companyName].to_csv(filename, mode='a', header=None)
     
-x = draw_hold_period(year='2021', tech='SMA_RSI', isTrain=True, isTradition=False, setCompany='all')       
+x = draw_hold_period(
+    year='2021', 
+    tech='SMA_RSI', 
+    isTrain=True, 
+    isTradition=False, 
+    draw=False, 
+    setCompany='all')       

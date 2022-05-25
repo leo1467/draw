@@ -116,12 +116,10 @@ class split_IRR_draw:
     
     class ProcessACompany:
         def __init__(self, FileIndex, file):
-            self.table = []
-            self.tableColumns = list()
-            self.cellData = dict()
             self.IRRData = dict()
-            self.tableObjs = list()
+            self.cellData = dict()
             self.tableNum = 0
+            self.tablePlotObjs = list()
             print(file)
             if file.split('.')[1] == 'csv':
                 self.process_df(file)
@@ -212,10 +210,10 @@ class split_IRR_draw:
                     # f'highest IRR diff of trad {comp1}/{comp2}': max(self.IRRData[self.df.columns[col1 + 1]]) - max(IRRDataTradCol2),
                     f'algo win rate {comp1}/{comp2}': len([i for i, j in zip(IRRDataAlgoCol1.sort_index(), IRRDataAlgoCol2.sort_index()) if i >= j]) / len(IRRDataAlgoCol1) * 100, 
                     f'trad win rate {comp1}/{comp2}': len([i for i, j in zip(IRRDataTradCol1.sort_index(), IRRDataTradCol2.sort_index()) if i >= j]) / len(IRRDataTradCol1) * 100, 
-                    f'algo IRR gain {comp1}/{comp2} ': (IRRDataAlgoCol1[0] - IRRDataAlgoCol2[0]) / IRRDataAlgoCol2[0] * 100, 
-                    f'algo IRR average gain {comp1}/{comp2}': (np.average(IRRDataAlgoCol1) - np.average(IRRDataAlgoCol2)) / np.average(IRRDataAlgoCol2) * 100,
-                    f'trad IRR gain {comp1}/{comp2} ': (IRRDataTradCol1[0] - IRRDataTradCol2[0]) / IRRDataTradCol2[0] * 100, 
-                    f'trad IRR average gain {comp1}/{comp2}': (np.average(IRRDataTradCol1) - np.average(IRRDataTradCol2)) / np.average(IRRDataTradCol2) * 100,
+                    f'algo highest IRR gain {comp1}/{comp2} ': (IRRDataAlgoCol1[0] - IRRDataAlgoCol2[0]) / IRRDataAlgoCol2[0] * 100, 
+                    f'algo average IRR gain {comp1}/{comp2}': (np.average(IRRDataAlgoCol1) - np.average(IRRDataAlgoCol2)) / np.average(IRRDataAlgoCol2) * 100,
+                    f'trad highest IRR gain {comp1}/{comp2} ': (IRRDataTradCol1[0] - IRRDataTradCol2[0]) / IRRDataTradCol2[0] * 100, 
+                    f'trad average IRR gain {comp1}/{comp2}': (np.average(IRRDataTradCol1) - np.average(IRRDataTradCol2)) / np.average(IRRDataTradCol2) * 100,
                 }
                 self.frontLen = len(data)
                 backData = {
@@ -270,7 +268,7 @@ class split_IRR_draw:
                     fontsize=split_IRR_draw.allFontSize + 8)
                 fig.savefig(self.company + '_table'  + '.png', dpi=fig.dpi, bbox_inches='tight')
                 plt.clf()
-                self.tableObjs.clear()
+                self.tablePlotObjs.clear()
         
         def draw_tables(self, fig, gs):
             for i, j in zip(range(0, self.dataColLen * self.techNum, self.dataColLen), range(self.techNum)):
@@ -300,10 +298,10 @@ class split_IRR_draw:
                 # loc='best', 
                 cellLoc='center', 
                 # colColours=['silver'] * (len(tmpTableDf.columns)), 
-                colColours=[(lambda x: 'silver' if len(self.tableObjs) < self.techNum else 'wheat')(0)] * (len(tmpTableDf.columns)), 
+                colColours=[(lambda x: 'silver' if len(self.tablePlotObjs) < self.techNum else 'wheat')(0)] * (len(tmpTableDf.columns)), 
                 bbox=[0, 1, 1, 2]
                 )
-            self.tableObjs.append(topTable)
+            self.tablePlotObjs.append(topTable)
             # for colIndex in range(len(tableDf.columns)):  #設定cell text顏色
             #     topTable[0, colIndex].get_text().set_color('white')
             # topTable.auto_set_column_width(col=list(range(len(self.tableDf.columns))))
@@ -311,7 +309,7 @@ class split_IRR_draw:
             topTable.set_fontsize('large')  # Valid font size are xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
             
             # 看每個視窗勝率時可以分顏色
-            if len(self.tableObjs) > self.techNum and True in [True for i in tmpTableDf if 'win' in i]:
+            if len(self.tablePlotObjs) > self.techNum and True in [True for i in tmpTableDf if 'win' in i]:
                 # topTable.auto_set_column_width(col=list(range(len(self.tableDf.columns))))
                 for i in range(self.backLen):
                     if i < 3:
@@ -322,7 +320,7 @@ class split_IRR_draw:
         
         def find_big_cell(self, colNum):
             cellCompare = list()
-            for eachTable in self.tableObjs:
+            for eachTable in self.tablePlotObjs:
                 cellCompare.append(eachTable[1, colNum])
             compare = -1
             for cell in cellCompare:
@@ -358,7 +356,7 @@ class split_IRR_draw:
             dfCuttedIndex.append(len(self.df))
             
             # 找出plot bar要佔用哪些grid
-            startGrid = (lambda tableObjSize: 0 if tableObjSize == 0 else (tableObjSize - 1) * 2 - 1)(len(self.tableObjs))
+            startGrid = (lambda tableObjSize: 0 if tableObjSize == 0 else (tableObjSize - 1) * 2 - 1)(len(self.tablePlotObjs))
             figJump = ceil((gridNum - startGrid) / figCnt)
             figGrid = [startGrid]
             for i in range(figCnt):
@@ -432,7 +430,7 @@ class split_IRR_draw:
                 fontsize=split_IRR_draw.allFontSize)
             figTitle = self.company + (lambda x: ' reorder ' if x else ' ')(split_IRR_draw.reorder) + split_IRR_draw.trainOrTest + ' ' +  ' '.join(self.titleTechNames) + ' IRR rank'
             fig.suptitle(figTitle, 
-                        y=(lambda tableObjSize: 1.07 if tableObjSize > 1 else 1.03)(len(self.tableObjs)), 
+                        y=(lambda tableObjSize: 1.07 if tableObjSize > 1 else 1.03)(len(self.tablePlotObjs)), 
                         fontsize=split_IRR_draw.allFontSize + 5)
             # fig.subplots_adjust(hspace=1)
             figName = self.company + (lambda x: '_reorder' if x else '')(split_IRR_draw.reorder)
