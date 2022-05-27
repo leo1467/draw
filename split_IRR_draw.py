@@ -348,8 +348,13 @@ class split_IRR_draw:
             if len(self.df.columns) < 3:
                 split_IRR_draw.totalBarWidth = 0.5
             
+            # 設定要畫幾個子圖
+            if split_IRR_draw.reorder:
+                figCnt = 1
+            else:
+                figCnt = (lambda x: 2 if x < 5 else 3)(len(self.df.columns))
+            
             # 將過長的df切開
-            figCnt = (lambda x: 2 if x < 5 else 3)(len(self.df.columns))
             dfCuttedIndex = list()
             for i in range(figCnt):
                 dfCuttedIndex.append(floor(len(self.df) / figCnt) * i)
@@ -365,12 +370,19 @@ class split_IRR_draw:
             # plot bar
             barAxes = list()
             for splitIndex in range(figCnt):
+                # 設定每個子圖佔多少grid
                 if splitIndex == 0:
                     barAx = fig.add_subplot(gs[figGrid[splitIndex]:figGrid[splitIndex + 1], :])
                 else:
                     barAx = fig.add_subplot(gs[figGrid[splitIndex]:figGrid[splitIndex + 1], :], sharey=barAxes[0])
                 barAxes.append(barAx)
-                subDf = self.df.iloc[dfCuttedIndex[splitIndex]:dfCuttedIndex[splitIndex + 1]]
+                
+                # 分割需要畫的df出來
+                if split_IRR_draw.reorder:
+                    subDf = self.df.iloc[dfCuttedIndex[splitIndex]:dfCuttedIndex[splitIndex + 1] - 1, [0]]
+                else:
+                    subDf = self.df.iloc[dfCuttedIndex[splitIndex]:dfCuttedIndex[splitIndex + 1]]
+                
                 plot = subDf.plot.bar(
                     ax=barAx, 
                     width=split_IRR_draw.totalBarWidth, 
@@ -383,8 +395,10 @@ class split_IRR_draw:
                 
                 # 找出B&H位置，將B&H的bar變成紅色
                 BHIndex = [i for i, x in enumerate(subDf.index) if x == 'B&H']
-                if not len(BHIndex):
+                if not len(BHIndex) and not split_IRR_draw.reorder:
                     axIndexForLegned = splitIndex
+                elif split_IRR_draw.reorder:
+                    axIndexForLegned = 0
                 if len(BHIndex):
                     BHIndex = BHIndex[0]
                     for barIndex, barContainer in enumerate(plot.containers):
@@ -396,7 +410,7 @@ class split_IRR_draw:
                         barContainer[BHIndex].set_edgecolor('black')
                 
                 # 如果是train，變更每個滑動視窗的B&H顏色
-                if split_IRR_draw.trainOrTest == 'train':
+                if split_IRR_draw.trainOrTest == 'train' and not split_IRR_draw.reorder:
                     for singleBar in plot.containers[-1]:
                         singleBar.set_color(split_IRR_draw.BHColor)
                         singleBar.set_edgecolor('black')
@@ -405,16 +419,16 @@ class split_IRR_draw:
                 barAx.grid(axis='y')
                 barAx.yaxis.set_major_formatter(mtick.PercentFormatter())  #把座標變成%
                 barAx.locator_params(axis='y', nbins=10)
-                barAx.set_xticklabels(subDf.index, rotation=45)
+                barAx.set_xticklabels(subDf.index, rotation=(lambda x: 90 if x else 45)(split_IRR_draw.reorder))
                 barAx.set(xlabel='', ylabel='')
                 barAx.tick_params(axis='both', labelsize=split_IRR_draw.allFontSize)  #設定xlabel ylabel字形大小
                 
                 # 設定lable顏色
-                for cellIndex in barAx.get_xticklabels():
-                    txt = cellIndex.get_text()
+                for cellText in barAx.get_xticklabels():
+                    txt = cellText.get_text()
                     for slideGroup in split_IRR_draw.slidingLableClrList:
                         if txt in slideGroup[0]:
-                            plt.setp(cellIndex, bbox=dict(boxstyle='round', edgecolor='none', alpha=1, facecolor=slideGroup[1]))
+                            plt.setp(cellText, bbox=dict(boxstyle='round', edgecolor='none', alpha=1, facecolor=slideGroup[1]))
                             break
                 # if len(self.df.columns) > 4:
                 #     continue
@@ -443,8 +457,8 @@ class split_IRR_draw:
         
 x = split_IRR_draw(IRRFileName='train_IRR_name_sorted_SMA_RSI_3', 
                    splitIRRFile=False, 
-                   drawBar=False, 
-                   drawTable=True, 
+                   drawBar=True, 
+                   drawTable=False, 
                    seperateTable=True, 
-                   reorder=False, 
+                   reorder=True, 
                    setCompany='all')
