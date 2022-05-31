@@ -81,6 +81,7 @@ class draw_hold_period:
             yearIndexes = [yearIndexes[0], yearIndexes[-1]]
         for yearIndex in range(len(yearIndexes)):
         # for yearIndex in range(len(yearIndexes) - 1, len(yearIndexes)):
+        # for yearIndex in range(2, 3):
             if yearIndex == len(yearIndexes) - 1:
                 newDf = df.iloc[yearIndexes[0]:yearIndexes[-1]]
             else:
@@ -131,14 +132,17 @@ class draw_hold_period:
         buyY = tradeInfo['buy'].copy()
         sellY = tradeInfo['sell'].copy()
         
-        if tradeInfo['buy'].index[0] > tradeInfo['sell'].index[0]: #去年買今年賣,插入去年買buyY的尾巴
+        if len(tradeInfo['buy']) and len(tradeInfo['sell']) and tradeInfo['buy'].index[0] > tradeInfo['sell'].index[0]: #去年買今年賣,插入去年買buyY的尾巴
             buyY = pd.concat([self.lastBuyY, buyY])
         
-        if tradeInfo['buy'].index[-1] > tradeInfo['sell'].index[-1]: #今年買明年賣,記錄今年buyY的尾巴
+        if len(tradeInfo['buy']) and len(tradeInfo['sell']) and tradeInfo['buy'].index[-1] > tradeInfo['sell'].index[-1] or len(tradeInfo['buy']) == 1 and len(tradeInfo['sell']) == 0: #今年買明年賣,記錄今年buyY的尾巴
             self.lastBuyY = pd.Series({tradeInfo['buy'].index[-1]:tradeInfo['buy'].values[-1]})
-        tradeNum = len(sellY)
         
-        winRate = str(round(len([i for i, j in zip(buyY, sellY) if j - i > 0]) / tradeNum * 100, 2)) + '%'
+        tradeNum = len(sellY)
+        if tradeNum != 0:
+            winRate = str(round(len([i for i, j in zip(buyY, sellY) if j - i > 0]) / tradeNum * 100, 2)) + '%'
+        else:
+            winRate = 0
         cellData.update({'win rate': winRate})
         
         profit = 10000000.0
@@ -255,7 +259,7 @@ class draw_hold_period:
 x = draw_hold_period(
     year='2021', 
     tech='SMA_RSI', 
-    isTrain=True, 
+    isTrain=False, 
     isTradition=False, 
-    draw=False, 
-    setCompany='all')       
+    draw=True, 
+    setCompany='all')
