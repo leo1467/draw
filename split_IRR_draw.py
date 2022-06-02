@@ -20,6 +20,16 @@ class split_IRR_draw:
         [['4W4', '4W3', '4W2', '4W1', '3W3', '3W2', '3W1', '2W2', '2W1', '1W1'], 'darkgoldenrod'],
         [['5D4', '5D3', '5D2', '4D4', '4D3', '4D2', '3D3', '3D2', '2D2'], 'w']
         ]
+    # slidingLableClrList = [ # 
+    #     [['YYY2YYY', 'YYY2YY', 'YYY2YH', 'YYY2Y', 'YYY2H', 'YYY2Q', 'YYY2M', ], 'gold'],
+    #     [['YY2YY', 'YY2YH', 'YY2Y', 'YY2H', 'YY2Q', 'YY2M', ], 'limegreen'], 
+    #     [['YH2YH', 'YH2Y', 'YH2H', 'YH2Q', 'YH2M', ], 'purple'], 
+    #     [['Y2Y', 'Y2H', 'Y2Q', 'Y2M', ], 'pink'], 
+    #     [['H#', 'H2H', 'H2Q', 'H2M', 'Q#', 'Q2Q', 'Q2M', 'M#', 'M2M'], 'r'],
+    #     [['20D20', '20D15', '20D10', '20D5', '15D15', '15D10', '15D5', '10D10', '10D5', '5D5'], 'grey'],
+    #     [['4W4', '4W3', '4W2', '4W1', '3W3', '3W2', '3W1', '2W2', '2W1', '1W1'], 'darkgoldenrod'],
+    #     [['5D4', '5D3', '5D2', '4D4', '4D3', '4D2', '3D3', '3D2', '2D2'], 'w']
+    #     ]
     reorderList = [
         'B&H',
         'YYY2YYY', 'YYY2YY', 'YYY2YH', 'YYY2Y', 'YYY2H', 'YYY2Q', 'YYY2M', 
@@ -30,10 +40,25 @@ class split_IRR_draw:
         '20D20', '20D15', '20D10', '20D5', '4W4', '4W3', '4W2', '4W1', 
         '15D15', '15D10', '15D5', '3W3', '3W2', '3W1', 
         '10D10', '10D5', '2W2', '2W1', 
-        '5D5', '5D4', '5D3', '5D2', '1W1', 
+        '5D5', '1W1', '5D4', '5D3', '5D2', 
         '4D4', '4D3', '4D2', 
         '3D3', '3D2', 
         '2D2']
+    # reorderList = [
+    #     'B&H',
+    #     'YYY2YYY', 'YYY2YY', 'YYY2Y', 'YYY2YH', 'YY2YY', 'YY2YH', 'YY2Y', 'YH2YH', 'YH2Y', 'Y2Y', 
+    #     'YYY2H', 'YYY2Q', 'YYY2M', 'YY2H', 'YY2Q', 'YY2M', 'YH2H', 'YH2Q', 'YH2M', 'Y2H', 'Y2Q', 'Y2M', 
+    #     'H#', 'H2H', 'H2Q', 'H2M', 'Q#', 'Q2Q', 'Q2M', 'M#', 'M2M', 
+    #     '20D20', '20D15', '20D10', '20D5', '15D15', '15D10', '15D5', '10D10', '10D5', '5D5', 
+    #     '4W4', '4W3', '4W2', '4W1', '3W3', '3W2', '3W1', '2W2', '2W1', '1W1', 
+    #     '5D4', '5D3', '5D2', '4D4', '4D3', '4D2', '3D3', '3D2', '2D2'
+    #     ]
+    # reorderList = [
+    #     'B&H',
+    #     'YYY2YYY', 'YYY2YY' ,'YYY2YH', 'YY2YY', 'YYY2Y', 'YY2YH', 'YYY2H', 'YYY2Q', 'YYY2M', 'YH2YH', 'YY2Y', 'YH2Y', 'YY2H', 'YY2Q', 'YY2M', 'Y2Y', 'YH2H', 'YH2Q', 'YH2M', 'Y2H', 'Y2Q', 'Y2M', 'H#', 'H2H', 'H2Q', 'H2M', 'Q#', 'Q2Q', 'Q2M', 'M#', 'M2M', 
+    #     '20D20', '4W4', '20D15', '4W3', '20D10', '4W2', '20D5', '4W1', '15D15', '3W3', '15D10', '3W2', '15D5', '3W1', '10D10', '2W2', '10D5', '2W1', '5D5', '1W1', 
+    #     '5D4', '5D3', '5D2', '4D4', '4D3', '4D2', '3D3', '3D2', '2D2'
+    #     ]
     # 設定bar屬性
     barColorSet = ['steelblue', 'darkorange', 'paleturquoise', 'wheat', 'lightcyan', 'lightyellow', 'red']
     BHColor = 'r'
@@ -185,18 +210,23 @@ class split_IRR_draw:
             IRRDataAlgoCol1 = self.IRRData[self.df.columns[col1]]
             IRRDataAlgoCol2 = self.IRRData[self.df.columns[col2]]
             IRRDataTradCol1 = self.IRRData[self.df.columns[col1 + 1]]
-            IRRDataTradCol2 = self.IRRData[self.df.columns[col2 + 1]]
             dfCol1 = self.df[self.df.columns[col1]]
             if not techCompare:
                 data = {
-                    f'{comp1} algo best/worst w': IRRDataAlgoCol1.index[0] + '/' + IRRDataAlgoCol1.index[-1],
-                    f'{comp1} trad best/worst w': IRRDataAlgoCol2.index[0] + '/' + IRRDataAlgoCol2.index[-1],
-                    f'{comp1} highest algo IRR': IRRDataAlgoCol1[0], 
-                    f'{comp1} highest trad IRR': IRRDataTradCol1[0], 
+                    f'{comp1} algo b/w w': IRRDataAlgoCol1.index[0] + '/' + IRRDataAlgoCol1.index[-1],
+                    f'{comp1} trad b/w w': IRRDataAlgoCol2.index[0] + '/' + IRRDataAlgoCol2.index[-1],
+                    f'{comp1} algo best IRR': IRRDataAlgoCol1[0], 
+                    f'{comp1} algo avg IRR': np.average(IRRDataAlgoCol1), 
+                    f'{comp1} trad best IRR': IRRDataTradCol1[0], 
+                    f'{comp1} trad avg IRR': np.average(IRRDataAlgoCol2), 
+                    # f'{comp1} yellow w': np.average([values for index, values in IRRDataAlgoCol1.items() if index in split_IRR_draw.slidingLableClrList[0][0]]), 
+                    # f'{comp1} green w': np.average([values for index, values in IRRDataAlgoCol1.items() if index in split_IRR_draw.slidingLableClrList[1][0]]), 
+                    # f'{comp1} red w': np.average([values for index, values in IRRDataAlgoCol1.items() if index in split_IRR_draw.slidingLableClrList[2][0]]), 
+                    # f'{comp1} grey w': np.average([values for index, values in IRRDataAlgoCol1.items() if index in split_IRR_draw.slidingLableClrList[3][0]]), 
+                    # f'{comp1} brown w': np.average([values for index, values in IRRDataAlgoCol1.items() if index in split_IRR_draw.slidingLableClrList[4][0]]), 
+                    # f'{comp1} white w': np.average([values for index, values in IRRDataAlgoCol1.items() if index in split_IRR_draw.slidingLableClrList[5][0]]), 
                     # [f'{comp1} highest IRR diff algo/trad', IRRDataCol1[0] - IRRDataCol2[0]], 
                     # [f'{comp1} algo win rate', len([i for i, j in zip(IRRDataCol1, IRRDataCol2) if i >= j]) / len(IRRDataCol1) * 100],
-                    f'{comp1} algo avg IRR': np.average(IRRDataAlgoCol1), 
-                    f'{comp1} trad avg IRR': np.average(IRRDataAlgoCol2), 
                     # [f'{comp1} highest IRR diff algo/B&H', IRRDataCol1[0] - self.df.at['B&H', self.df.columns[col1]]], 
                     # [f'{comp1} highest IRR diff trad/B&H', IRRDataCol2[0] - self.df.at['B&H', self.df.columns[col2]]], 
                     # f'{comp1} algo "Y" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if w[0] == 'Y']), 
@@ -205,18 +235,20 @@ class split_IRR_draw:
                 }
                 self.dataColLen = len(data)
             else:
+                IRRDataTradCol2 = self.IRRData[self.df.columns[col2 + 1]]
                 data = {
+                    f'algo win {comp1}/{comp2}': len([i for i, j in zip(IRRDataAlgoCol1.sort_index(), IRRDataAlgoCol2.sort_index()) if i >= j]) / len(IRRDataAlgoCol1) * 100, 
+                    f'trad win {comp1}/{comp2}': len([i for i, j in zip(IRRDataTradCol1.sort_index(), IRRDataTradCol2.sort_index()) if i >= j]) / len(IRRDataTradCol1) * 100, 
                     # f'highest IRR diff of algo {comp1}/{comp2}': IRRDataCol1[0] - IRRDataCol2[0],
                     # f'highest IRR diff of trad {comp1}/{comp2}': max(self.IRRData[self.df.columns[col1 + 1]]) - max(IRRDataTradCol2),
-                    f'algo win rate {comp1}/{comp2}': len([i for i, j in zip(IRRDataAlgoCol1.sort_index(), IRRDataAlgoCol2.sort_index()) if i >= j]) / len(IRRDataAlgoCol1) * 100, 
-                    f'trad win rate {comp1}/{comp2}': len([i for i, j in zip(IRRDataTradCol1.sort_index(), IRRDataTradCol2.sort_index()) if i >= j]) / len(IRRDataTradCol1) * 100, 
                     f'algo highest IRR gain {comp1}/{comp2} ': (IRRDataAlgoCol1[0] - IRRDataAlgoCol2[0]) / IRRDataAlgoCol2[0] * 100, 
-                    f'algo average IRR gain {comp1}/{comp2}': (np.average(IRRDataAlgoCol1) - np.average(IRRDataAlgoCol2)) / np.average(IRRDataAlgoCol2) * 100,
+                    f'algo avg IRR gain {comp1}/{comp2}': (np.average(IRRDataAlgoCol1) - np.average(IRRDataAlgoCol2)) / np.average(IRRDataAlgoCol2) * 100,
                     f'trad highest IRR gain {comp1}/{comp2} ': (IRRDataTradCol1[0] - IRRDataTradCol2[0]) / IRRDataTradCol2[0] * 100, 
-                    f'trad average IRR gain {comp1}/{comp2}': (np.average(IRRDataTradCol1) - np.average(IRRDataTradCol2)) / np.average(IRRDataTradCol2) * 100,
+                    f'trad avg IRR gain {comp1}/{comp2}': (np.average(IRRDataTradCol1) - np.average(IRRDataTradCol2)) / np.average(IRRDataTradCol2) * 100,
                 }
                 self.frontLen = len(data)
                 backData = {
+                    # 訓練期才用
                     # f'algo "Y" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1, col2) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y'])),
                     # f'algo "H" "Q" "M" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1, col2) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M'])),
                     # f'algo "D" "W" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1, col2) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)])),
@@ -224,6 +256,15 @@ class split_IRR_draw:
                     # f'trad "Y" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y'])),
                     # f'trad "H" "Q" "M" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M'])),
                     # f'trad "D" "W" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)])),
+                    
+                    # f'algo "Y" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1, col2) and w[0] == 'Y']) / len([w for w in self.df.index if w[0] == 'Y']) * 100,
+                    # f'algo "H" "Q" "M" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1, col2) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')]) / len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']) * 100,
+                    # f'algo "D" "W" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1, col2) and ('W' in w or 'D' in w)]) / len([w for w in self.df.index if ('W' in w or 'D' in w)]) * 100,
+                    
+                    # f'trad "Y" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and w[0] == 'Y']) / len([w for w in self.df.index if w[0] == 'Y']) * 100,
+                    # f'trad "H" "Q" "M" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')]) / len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']) * 100,
+                    # f'trad "D" "W" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and ('W' in w or 'D' in w)]) / len([w for w in self.df.index if ('W' in w or 'D' in w)]) * 100,
+                    # 訓練期才用
                 }
                 self.backLen = len(backData)
                 for elem in backData.items():
@@ -298,7 +339,7 @@ class split_IRR_draw:
                 # loc='best', 
                 cellLoc='center', 
                 # colColours=['silver'] * (len(tmpTableDf.columns)), 
-                colColours=[(lambda x: 'silver' if len(self.tablePlotObjs) < self.techNum else 'wheat')(0)] * (len(tmpTableDf.columns)), 
+                colColours=[(lambda x: 'silver' if len(self.tablePlotObjs) < self.techNum else 'darkorange')(0)] * (len(tmpTableDf.columns)), 
                 bbox=[0, 1, 1, 2]
                 )
             self.tablePlotObjs.append(topTable)
@@ -322,10 +363,10 @@ class split_IRR_draw:
             cellCompare = list()
             for eachTable in self.tablePlotObjs:
                 cellCompare.append(eachTable[1, colNum])
-            compare = -1
+            compare = -1000
             for cell in cellCompare:
                 try:
-                    cellData = float(cell.get_text()._text[:-1])
+                    cellData = float(cell.get_text()._text.strip('%'))
                 except ValueError:
                     continue
                 if cellData > compare:
@@ -333,7 +374,7 @@ class split_IRR_draw:
             bigCell = list()
             for cell in cellCompare:
                 try:
-                    cellData = float(cell.get_text()._text[:-1])
+                    cellData = float(cell.get_text()._text.strip('%'))
                 except ValueError:
                     continue
                 if cellData == compare:
@@ -449,9 +490,9 @@ class split_IRR_draw:
             # fig.subplots_adjust(hspace=1)
             figName = self.company + (lambda x: '_reorder' if x else '')(split_IRR_draw.reorder)
             if split_IRR_draw.seperateTable:
-                figName += '_all_IRR_no_table' + '.png'
+                figName += '_all_IRR_no_table.png'
             else:
-                figName += '_all_IRR' + '.png'
+                figName += '_all_IRR.png'
             fig.savefig(figName, dpi=fig.dpi, bbox_inches='tight')
             plt.clf()
         

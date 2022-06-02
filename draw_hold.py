@@ -259,7 +259,7 @@ class draw_hold_period:
 x = draw_hold_period(
     year='2021', 
     tech='SMA_RSI', 
-    isTrain=False, 
+    isTrain=True, 
     isTradition=False, 
     draw=True, 
     setCompany='all')
