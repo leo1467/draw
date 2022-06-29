@@ -6,6 +6,7 @@ import pandas as pd
 import glob
 import os
 import matplotlib.ticker as mtick
+from sympy import false
 
 file_extension = '.csv'
 root = os.getcwd()
@@ -162,8 +163,8 @@ class split_IRR_draw:
         
         def find_techNames(self):
             self.techNames = [name.split(' ')[0] for name in self.df.columns if 'B&H' not in name]
-            if len(self.techNames[0].split('_')) > 1 and 'choose' in self.df.columns[-1]:
-                self.techNames = [y for x, y in enumerate(self.techNames[:-5]) if x % 2 == 0]
+            if "window num" in self.df.columns:
+                self.techNames = [tech for tech in self.df.columns[:-1]]
             else:
                 self.techNames = [y for x, y in enumerate(self.techNames) if x % 2 == 0]
             self.techNum = len(self.techNames)
@@ -180,6 +181,9 @@ class split_IRR_draw:
                 self.df = self.df.reindex(split_IRR_draw.reorderList)
             else:
                 self.df.sort_values(by=self.df.columns[0], ascending=False, inplace=True)
+            
+            if "window num" in self.df.columns:  # 如果是計算不同指數出現次數，下面就不用做
+                return
             
             for i in range(self.techNum):
                 self.add_info(self.techNames[i], '', i * 2, i * 2 + 1, False)
@@ -419,8 +423,10 @@ class split_IRR_draw:
                 barAxes.append(barAx)
                 
                 # 分割需要畫的df出來
-                if split_IRR_draw.reorder:
+                if split_IRR_draw.reorder and "window num" not in self.df.columns:
                     subDf = self.df.iloc[dfCuttedIndex[splitIndex]:dfCuttedIndex[splitIndex + 1] - 1, [0]]
+                elif split_IRR_draw.reorder and "window num" in self.df.columns:
+                    subDf = self.df.iloc[dfCuttedIndex[splitIndex]:dfCuttedIndex[splitIndex + 1] - 1, :-1]
                 else:
                     subDf = self.df.iloc[dfCuttedIndex[splitIndex]:dfCuttedIndex[splitIndex + 1]]
                 
@@ -483,23 +489,32 @@ class split_IRR_draw:
                 fancybox=True, shadow=False, 
                 ncol=len(self.df.columns), 
                 fontsize=split_IRR_draw.allFontSize)
-            figTitle = self.company + (lambda x: ' reorder ' if x else ' ')(split_IRR_draw.reorder) + split_IRR_draw.trainOrTest + ' ' +  ' '.join(self.titleTechNames) + ' IRR rank'
+            
+            figTitle = self.company + (lambda x: ' reorder ' if x else ' ')(split_IRR_draw.reorder) + split_IRR_draw.trainOrTest + ' ' +  ' '.join(self.titleTechNames)
+            if "window num" in self.df.columns:
+                figTitle += ' highest IRR appearance'
+            else:
+                figTitle += ' IRR rank'
+            
             fig.suptitle(figTitle, 
                         y=(lambda tableObjSize: 1.07 if tableObjSize > 1 else 1.03)(len(self.tablePlotObjs)), 
                         fontsize=split_IRR_draw.allFontSize + 5)
             # fig.subplots_adjust(hspace=1)
+            
             figName = self.company + (lambda x: '_reorder' if x else '')(split_IRR_draw.reorder)
-            if split_IRR_draw.seperateTable:
+            if "window num" in self.df.columns:
+                    figName += '_highest_IRR_appearence.png'
+            elif split_IRR_draw.seperateTable:
                 figName += '_all_IRR_no_table.png'
             else:
                 figName += '_all_IRR.png'
             fig.savefig(figName, dpi=fig.dpi, bbox_inches='tight')
             plt.clf()
         
-x = split_IRR_draw(IRRFileName='train_IRR_name_sorted_SMA_RSI_3', 
+x = split_IRR_draw(IRRFileName='train_IRR_IRR_sorted_SMA', 
                    splitIRRFile=False, 
-                   drawBar=True, 
-                   drawTable=False, 
+                   drawBar=False, 
+                   drawTable=True, 
                    seperateTable=True, 
-                   reorder=True, 
+                   reorder=False, 
                    setCompany='all')
