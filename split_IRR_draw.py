@@ -6,6 +6,7 @@ import pandas as pd
 import glob
 import os
 import matplotlib.ticker as mtick
+from regex import F
 from sympy import false
 
 file_extension = '.csv'
@@ -76,48 +77,52 @@ class split_IRR_draw:
         # gridspec_kw={'height_ratios': grid}, 
         constrained_layout=True
         )
-    allFontSize = 10
+    allFontSize = 14
     
     def __init__(self, IRRFileName, splitIRRFile, drawTable, drawBar, seperateTable, reorder, setCompany):
-        split_IRR_draw.seperateTable = seperateTable or drawBar
-        split_IRR_draw.reorder = reorder
-        if split_IRR_draw.reorder:
-            split_IRR_draw.reorderList.reverse()
-        self.IRRFileName = IRRFileName + '.csv'
-        self.dirName = 'split_' + self.IRRFileName.split('.')[0]
-        
-        print(self.IRRFileName)
-        self.process_fileName_dir()
-        
-        if splitIRRFile:
-            self.split_csv()
-        else:
-            os.chdir(self.dirName)
-        
-        if setCompany == 'all':
-            self.allIRRFile = [i for i in glob.glob(f"*{file_extension}")]
-        else:
-            self.allIRRFile = [i for i in glob.glob(f"*{file_extension}") if setCompany in i]
-        
-        for FileIndex, file in enumerate(self.allIRRFile):
-            processACompany = self.ProcessACompany(FileIndex, file)
-            fig = split_IRR_draw.fig
-            gs, gridNum = processACompany.set_grid(fig)
-            if drawTable:
-                processACompany.start_draw_tables(fig, gs)
-            if drawBar:
-                processACompany.draw_bar(fig, gs, gridNum)
-            # break
-        plt.close(split_IRR_draw.fig)
-        
-        os.chdir(root)
-        OutputTableFileName = IRRFileName.split('.')[0] + '_tables.csv'
-        for dfIndex, companyName in enumerate(self.tables):
-            self.tables[companyName].rename(index={0: companyName}, inplace=True)
-            if dfIndex == 0:
-                self.tables[companyName].to_csv(OutputTableFileName)
+        if "windowRank" in IRRFileName:
+            self.draw_rank(IRRFileName)
+        else:    
+            split_IRR_draw.seperateTable = seperateTable or drawBar
+            split_IRR_draw.reorder = reorder
+            if split_IRR_draw.reorder:
+                split_IRR_draw.reorderList.reverse()
+            self.IRRFileName = IRRFileName + '.csv'
+            self.dirName = 'split_' + self.IRRFileName.split('.')[0]
+            
+            print(self.IRRFileName)
+            self.process_fileName_dir()
+            
+            if splitIRRFile:
+                self.split_csv()
             else:
-                self.tables[companyName].to_csv(OutputTableFileName, mode='a', header=None)
+                os.chdir(self.dirName)
+            
+            if setCompany == 'all':
+                self.allIRRFile = [i for i in glob.glob(f"*{file_extension}")]
+            else:
+                self.allIRRFile = [i for i in glob.glob(f"*{file_extension}") if setCompany in i]
+            
+            for FileIndex, file in enumerate(self.allIRRFile):
+                processACompany = self.ProcessACompany(FileIndex, file)
+                fig = split_IRR_draw.fig
+                gs, gridNum = processACompany.set_grid(fig)
+                if drawTable:
+                    processACompany.start_draw_tables(fig, gs)
+                if drawBar:
+                    processACompany.draw_bar(fig, gs, gridNum)
+                # break
+            plt.close(split_IRR_draw.fig)
+            
+            # exit(0)
+            os.chdir(root)
+            OutputTableFileName = IRRFileName.split('.')[0] + '_tables.csv'
+            for dfIndex, companyName in enumerate(self.tables):
+                self.tables[companyName].rename(index={0: companyName}, inplace=True)
+                if dfIndex == 0:
+                    self.tables[companyName].to_csv(OutputTableFileName)
+                else:
+                    self.tables[companyName].to_csv(OutputTableFileName, mode='a', header=None)
     
     def split_csv(self):
         self.IRRdf = pd.read_csv(self.IRRFileName, index_col=False)
@@ -140,6 +145,57 @@ class split_IRR_draw:
         if not os.path.isdir(self.dirName):
             os.mkdir(self.dirName)
     
+    def draw_rank(self, IRRFileName):
+        rankDf = pd.read_csv(IRRFileName + '.csv', index_col='window')
+        ax1, ax2 = self.fig.subplots(nrows=2, sharey=True)
+        rankPlot = []
+        for index, ax in enumerate([ax1, ax2]):
+            if index == 0:
+                subDf = rankDf.iloc[:30]
+            elif index == 1:
+                subDf = rankDf.iloc[30:]
+            
+            plotBar = subDf.plot.bar(
+                ax=ax, 
+                # width=split_IRR_draw.totalBarWidth, 
+                rot=0, 
+                # color=self.colorDict, 
+                edgecolor='black', 
+                linewidth=0.2, 
+                legend=None
+                )
+            rankPlot.append(plotBar)
+            
+            ax.set_xticklabels(subDf.index, rotation=45)
+            ax.set(xlabel='', ylabel='')
+            ax.grid(axis='y')
+            ax.tick_params(axis='x', labelsize=split_IRR_draw.allFontSize)  #設定xlabel ylabel字形大小
+            ax.tick_params(axis='y', labelsize=10)
+            for cellText in ax.get_xticklabels():
+                    txt = cellText.get_text()
+                    for slideGroup in self.slidingLableClrList:
+                        if txt in slideGroup[0]:
+                            plt.setp(cellText, bbox=dict(boxstyle='round', edgecolor='none', alpha=1, facecolor=slideGroup[1]))
+                            break
+        
+        handles, labels = rankPlot[0].get_legend_handles_labels()
+        
+        self.fig.legend(
+            handles, ['accumulated rank'], 
+            loc='upper right', 
+            bbox_to_anchor=(1, 1.05), 
+            fancybox=True, shadow=False, 
+            ncol=1, 
+            fontsize=split_IRR_draw.allFontSize)
+        
+        fileNameSplit = IRRFileName.split('_')
+        self.fig.suptitle(fileNameSplit[1] + ' ' + fileNameSplit[2]+ ' ' + fileNameSplit[3] + ' ' + 'window rank', 
+                    ha='left', 
+                    x=0.025, 
+                    y=1.03, 
+                    fontsize=split_IRR_draw.allFontSize)
+        self.fig.savefig(IRRFileName + '.png', dpi=self.fig.dpi, bbox_inches='tight')
+
     class ProcessACompany:
         def __init__(self, FileIndex, file):
             self.IRRData = dict()
@@ -217,6 +273,15 @@ class split_IRR_draw:
             dfCol1 = self.df[self.df.columns[col1]]
             if not techCompare:
                 data = {
+                    # 'GNQTS best window': IRRDataAlgoCol1.index[0],
+                    # 'GNQTS worst window': IRRDataAlgoCol1.index[-1], 
+                    # 'traditional best window': IRRDataAlgoCol2.index[0],
+                    # 'traditional worst window': IRRDataAlgoCol2.index[-1], 
+                    # 'B&H IRR': self.df.at['B&H', self.df.columns[col1]], 
+                    # 'GNQTS highest IRR': IRRDataAlgoCol1[0], 
+                    # 'GNQTS average IRR': np.average(IRRDataAlgoCol1), 
+                    # 'traditional highest IRR': IRRDataTradCol1[0], 
+                    # 'traditional average IRR': np.average(IRRDataAlgoCol2), 
                     f'{comp1} algo b/w w': IRRDataAlgoCol1.index[0] + '/' + IRRDataAlgoCol1.index[-1],
                     f'{comp1} trad b/w w': IRRDataAlgoCol2.index[0] + '/' + IRRDataAlgoCol2.index[-1],
                     f'{comp1} algo best IRR': IRRDataAlgoCol1[0], 
@@ -309,8 +374,9 @@ class split_IRR_draw:
             # 設定top table
             self.draw_tables(fig, gs)
             if split_IRR_draw.seperateTable:
-                fig.suptitle(self.company + " " + split_IRR_draw.trainOrTest + ' ' + ' '.join(self.titleTechNames) + ' compare table', 
-                    fontsize=split_IRR_draw.allFontSize + 8)
+                # fig.suptitle(self.company + " " + split_IRR_draw.trainOrTest + ' ' + ' '.join(self.titleTechNames) + ' compare table', 
+                    # fontsize=split_IRR_draw.allFontSize + 8)
+                fig.suptitle(' ')
                 fig.savefig(self.company + '_table'  + '.png', dpi=fig.dpi, bbox_inches='tight')
                 plt.clf()
                 self.tablePlotObjs.clear()
@@ -468,7 +534,8 @@ class split_IRR_draw:
                 barAx.locator_params(axis='y', nbins=10)
                 barAx.set_xticklabels(subDf.index, rotation=(lambda x: 90 if x else 45)(split_IRR_draw.reorder))
                 barAx.set(xlabel='', ylabel='')
-                barAx.tick_params(axis='both', labelsize=split_IRR_draw.allFontSize)  #設定xlabel ylabel字形大小
+                barAx.tick_params(axis='x', labelsize=split_IRR_draw.allFontSize)  #設定xlabel ylabel字形大小
+                barAx.tick_params(axis='y', labelsize=10)
                 
                 # 設定lable顏色
                 for cellText in barAx.get_xticklabels():
@@ -484,8 +551,8 @@ class split_IRR_draw:
             handles, labels = barAxes[axIndexForLegned].get_legend_handles_labels()
             fig.legend(
                 handles, labels, 
-                loc='upper center', 
-                bbox_to_anchor=(0.5, 0), 
+                loc='upper right', 
+                bbox_to_anchor=(1, 1.05), 
                 fancybox=True, shadow=False, 
                 ncol=len(self.df.columns), 
                 fontsize=split_IRR_draw.allFontSize)
@@ -497,8 +564,10 @@ class split_IRR_draw:
                 figTitle += ' IRR rank'
             
             fig.suptitle(figTitle, 
-                        y=(lambda tableObjSize: 1.07 if tableObjSize > 1 else 1.03)(len(self.tablePlotObjs)), 
-                        fontsize=split_IRR_draw.allFontSize + 5)
+                         ha='left', 
+                         x=0.025, 
+                         y=(lambda tableObjSize: 1.07 if tableObjSize > 1 else 1.03)(len(self.tablePlotObjs)), 
+                         fontsize=split_IRR_draw.allFontSize)
             # fig.subplots_adjust(hspace=1)
             
             figName = self.company + (lambda x: '_reorder' if x else '')(split_IRR_draw.reorder)
@@ -511,10 +580,10 @@ class split_IRR_draw:
             fig.savefig(figName, dpi=fig.dpi, bbox_inches='tight')
             plt.clf()
         
-x = split_IRR_draw(IRRFileName='train_IRR_IRR_sorted_SMA', 
-                   splitIRRFile=False, 
-                   drawBar=False, 
-                   drawTable=True, 
+x = split_IRR_draw(IRRFileName='windowRank_mixed_train_Tradition', 
+                   splitIRRFile=True, 
+                   drawBar=True, 
+                   drawTable=False, 
                    seperateTable=True, 
                    reorder=False, 
                    setCompany='all')
