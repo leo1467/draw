@@ -147,13 +147,16 @@ class split_IRR_draw:
     
     def draw_rank(self, IRRFileName):
         rankDf = pd.read_csv(IRRFileName + '.csv', index_col='window')
-        ax1, ax2 = self.fig.subplots(nrows=2, sharey=True)
+        rankDf = rankDf.drop('B&H')
+        ax1, ax2, ax3 = self.fig.subplots(nrows=3, sharey=True)
         rankPlot = []
-        for index, ax in enumerate([ax1, ax2]):
+        for index, ax in enumerate([ax1, ax2, ax3]):
             if index == 0:
-                subDf = rankDf.iloc[:30]
+                subDf = rankDf.iloc[:20]
             elif index == 1:
-                subDf = rankDf.iloc[30:]
+                subDf = rankDf.iloc[20:40]
+            elif index == 2:
+                subDf = rankDf.iloc[40:]
             
             plotBar = subDf.plot.bar(
                 ax=ax, 
@@ -169,32 +172,34 @@ class split_IRR_draw:
             ax.set_xticklabels(subDf.index, rotation=45)
             ax.set(xlabel='', ylabel='')
             ax.grid(axis='y')
-            ax.tick_params(axis='x', labelsize=split_IRR_draw.allFontSize)  #設定xlabel ylabel字形大小
+            ax.tick_params(axis='x', labelsize=split_IRR_draw.allFontSize + 6)  #設定xlabel ylabel字形大小
             ax.tick_params(axis='y', labelsize=10)
             for cellText in ax.get_xticklabels():
                     txt = cellText.get_text()
                     for slideGroup in self.slidingLableClrList:
                         if txt in slideGroup[0]:
-                            plt.setp(cellText, bbox=dict(boxstyle='round', edgecolor='none', alpha=1, facecolor=slideGroup[1]))
+                            plt.setp(cellText, bbox=dict(boxstyle='round, pad=0.15', edgecolor='none', alpha=1, facecolor=slideGroup[1]))
                             break
         
         handles, labels = rankPlot[0].get_legend_handles_labels()
         
         self.fig.legend(
-            handles, ['accumulated rank'], 
+            # handles, ['accumulated rank'], 
+            handles, labels, 
             loc='upper right', 
             bbox_to_anchor=(1, 1.05), 
             fancybox=True, shadow=False, 
             ncol=1, 
             fontsize=split_IRR_draw.allFontSize)
-        
+        'windowRank_train_SMA_Tradition'
         fileNameSplit = IRRFileName.split('_')
-        self.fig.suptitle(fileNameSplit[1] + ' ' + fileNameSplit[2]+ ' ' + fileNameSplit[3] + ' ' + 'window rank', 
+        self.fig.suptitle(fileNameSplit[2] + ' ' + fileNameSplit[1]+ ' ' + fileNameSplit[3] + ' ' + 'window ranking', 
                     ha='left', 
                     x=0.025, 
                     y=1.03, 
                     fontsize=split_IRR_draw.allFontSize)
-        self.fig.savefig(IRRFileName + '.png', dpi=self.fig.dpi, bbox_inches='tight')
+        self.fig.savefig(IRRFileName + '_noBH.png', dpi=self.fig.dpi, bbox_inches='tight')
+        plt.clf()
 
     class ProcessACompany:
         def __init__(self, FileIndex, file):
@@ -259,7 +264,10 @@ class split_IRR_draw:
             
             for cellIndex in self.cellData:
                 try:
-                    cellData = str(round(float(self.cellData[cellIndex]), 2)) + '%'
+                    if 'ranking' not in cellIndex and 'positive' not in cellIndex:
+                        cellData = str(round(float(self.cellData[cellIndex]), 2)) + '%'
+                    else:
+                        continue
                 except ValueError:
                     continue
                 self.cellData[cellIndex] = cellData
@@ -270,69 +278,85 @@ class split_IRR_draw:
             IRRDataAlgoCol1 = self.IRRData[self.df.columns[col1]]
             IRRDataAlgoCol2 = self.IRRData[self.df.columns[col2]]
             IRRDataTradCol1 = self.IRRData[self.df.columns[col1 + 1]]
-            dfCol1 = self.df[self.df.columns[col1]]
+            dfCol1 = self.df[self.df.columns[col1]].sort_values(ascending=False)
+            dfCol2 = self.df[self.df.columns[col1 + 1]].sort_values(ascending=False)
+            if 'B&H' in self.IRRData:
+                BHCol = self.IRRData['B&H'].iloc[:-1]
+            else:
+                BHCol = self.df[self.df.columns[0]].iloc[self.df.index.get_loc('B&H'):self.df.index.get_loc('B&H') + 1]
             if not techCompare:
                 data = {
                     # 'GNQTS best window': IRRDataAlgoCol1.index[0],
                     # 'GNQTS worst window': IRRDataAlgoCol1.index[-1], 
-                    # 'traditional best window': IRRDataAlgoCol2.index[0],
-                    # 'traditional worst window': IRRDataAlgoCol2.index[-1], 
+                    # 'Traditional best window': IRRDataAlgoCol2.index[0],
+                    # 'Traditional worst window': IRRDataAlgoCol2.index[-1], 
                     # 'B&H IRR': self.df.at['B&H', self.df.columns[col1]], 
                     # 'GNQTS highest IRR': IRRDataAlgoCol1[0], 
                     # 'GNQTS average IRR': np.average(IRRDataAlgoCol1), 
-                    # 'traditional highest IRR': IRRDataTradCol1[0], 
-                    # 'traditional average IRR': np.average(IRRDataAlgoCol2), 
-                    f'{comp1} algo b/w w': IRRDataAlgoCol1.index[0] + '/' + IRRDataAlgoCol1.index[-1],
-                    f'{comp1} trad b/w w': IRRDataAlgoCol2.index[0] + '/' + IRRDataAlgoCol2.index[-1],
-                    f'{comp1} algo best IRR': IRRDataAlgoCol1[0], 
-                    f'{comp1} algo avg IRR': np.average(IRRDataAlgoCol1), 
-                    f'{comp1} trad best IRR': IRRDataTradCol1[0], 
-                    f'{comp1} trad avg IRR': np.average(IRRDataAlgoCol2), 
+                    # 'Traditional highest IRR': IRRDataTradCol1[0], 
+                    # 'Traditional average IRR': np.average(IRRDataAlgoCol2), 
+                    f'{comp1} GNQTS b/w w': IRRDataAlgoCol1.index[0] + '/' + IRRDataAlgoCol1.index[-1],
+                    f'{comp1} Traditional b/w w': IRRDataAlgoCol2.index[0] + '/' + IRRDataAlgoCol2.index[-1],
+                    f'{comp1} GNQTS best IRR': IRRDataAlgoCol1[0], 
+                    f'{comp1} GNQTS average IRR': np.average(IRRDataAlgoCol1), 
+                    f'{comp1} Traditional best IRR': IRRDataTradCol1[0], 
+                    f'{comp1} Traditional average IRR': np.average(IRRDataAlgoCol2), 
+                    f'{comp1} best B&H': BHCol.values.max(), 
+                    f'{comp1} B&H average': np.average(BHCol.values),
                     # f'{comp1} yellow w': np.average([values for index, values in IRRDataAlgoCol1.items() if index in split_IRR_draw.slidingLableClrList[0][0]]), 
                     # f'{comp1} green w': np.average([values for index, values in IRRDataAlgoCol1.items() if index in split_IRR_draw.slidingLableClrList[1][0]]), 
                     # f'{comp1} red w': np.average([values for index, values in IRRDataAlgoCol1.items() if index in split_IRR_draw.slidingLableClrList[2][0]]), 
                     # f'{comp1} grey w': np.average([values for index, values in IRRDataAlgoCol1.items() if index in split_IRR_draw.slidingLableClrList[3][0]]), 
                     # f'{comp1} brown w': np.average([values for index, values in IRRDataAlgoCol1.items() if index in split_IRR_draw.slidingLableClrList[4][0]]), 
                     # f'{comp1} white w': np.average([values for index, values in IRRDataAlgoCol1.items() if index in split_IRR_draw.slidingLableClrList[5][0]]), 
-                    # [f'{comp1} highest IRR diff algo/trad', IRRDataCol1[0] - IRRDataCol2[0]], 
-                    # [f'{comp1} algo win rate', len([i for i, j in zip(IRRDataCol1, IRRDataCol2) if i >= j]) / len(IRRDataCol1) * 100],
-                    # [f'{comp1} highest IRR diff algo/B&H', IRRDataCol1[0] - self.df.at['B&H', self.df.columns[col1]]], 
-                    # [f'{comp1} highest IRR diff trad/B&H', IRRDataCol2[0] - self.df.at['B&H', self.df.columns[col2]]], 
-                    # f'{comp1} algo "Y" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if w[0] == 'Y']), 
-                    # f'{comp1} algo "HQM" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']), 
-                    # f'{comp1} algo "DW" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if 'W' in w or 'D' in w]), 
+                    # [f'{comp1} highest IRR diff GNQTS/Traditional', IRRDataCol1[0] - IRRDataCol2[0]], 
+                    
+                    # f'{comp1} GNQTS win rate': len([i for i, j in zip(IRRDataAlgoCol1.sort_index(), IRRDataAlgoCol2.sort_index()) if i >= j]) / len(IRRDataAlgoCol1) * 100, 
+                    # f'{comp1} GNQTS B&H ranking': str(dfCol1.index.get_loc('B&H') + 1),
+                    # f'{comp1} Traditional B&H ranking': str(dfCol2.index.get_loc('B&H') + 1), 
+                    # f'{comp1} GNQTS positive IRR window': len([i for i in IRRDataAlgoCol1 if i >= 0]), 
+                    # f'{comp1} Traditional positive IRR window': len([i for i in IRRDataAlgoCol2 if i >= 0]), 
+                    
+                    # [f'{comp1} highest IRR diff GNQTS/B&H', IRRDataCol1[0] - self.df.at['B&H', self.df.columns[col1]]], 
+                    # [f'{comp1} highest IRR diff Traditional/B&H', IRRDataCol2[0] - self.df.at['B&H', self.df.columns[col2]]], 
+                    # f'{comp1} GNQTS "Y" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if w[0] == 'Y']), 
+                    # f'{comp1} GNQTS "HQM" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']), 
+                    # f'{comp1} GNQTS "DW" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if 'W' in w or 'D' in w]), 
                 }
                 self.dataColLen = len(data)
             else:
                 IRRDataTradCol2 = self.IRRData[self.df.columns[col2 + 1]]
                 data = {
-                    f'algo win {comp1}/{comp2}': len([i for i, j in zip(IRRDataAlgoCol1.sort_index(), IRRDataAlgoCol2.sort_index()) if i >= j]) / len(IRRDataAlgoCol1) * 100, 
-                    f'trad win {comp1}/{comp2}': len([i for i, j in zip(IRRDataTradCol1.sort_index(), IRRDataTradCol2.sort_index()) if i >= j]) / len(IRRDataTradCol1) * 100, 
-                    # f'highest IRR diff of algo {comp1}/{comp2}': IRRDataCol1[0] - IRRDataCol2[0],
-                    # f'highest IRR diff of trad {comp1}/{comp2}': max(self.IRRData[self.df.columns[col1 + 1]]) - max(IRRDataTradCol2),
-                    f'algo highest IRR gain {comp1}/{comp2} ': (IRRDataAlgoCol1[0] - IRRDataAlgoCol2[0]) / IRRDataAlgoCol2[0] * 100, 
-                    f'algo avg IRR gain {comp1}/{comp2}': (np.average(IRRDataAlgoCol1) - np.average(IRRDataAlgoCol2)) / np.average(IRRDataAlgoCol2) * 100,
-                    f'trad highest IRR gain {comp1}/{comp2} ': (IRRDataTradCol1[0] - IRRDataTradCol2[0]) / IRRDataTradCol2[0] * 100, 
-                    f'trad avg IRR gain {comp1}/{comp2}': (np.average(IRRDataTradCol1) - np.average(IRRDataTradCol2)) / np.average(IRRDataTradCol2) * 100,
+                    f'GNQTS win {comp1}/{comp2}': len([i for i, j in zip(IRRDataAlgoCol1.sort_index(), IRRDataAlgoCol2.sort_index()) if i >= j]) / len(IRRDataAlgoCol1) * 100, 
+                    f'Traditional win {comp1}/{comp2}': len([i for i, j in zip(IRRDataTradCol1.sort_index(), IRRDataTradCol2.sort_index()) if i >= j]) / len(IRRDataTradCol1) * 100, 
+                    # f'highest IRR diff of GNQTS {comp1}/{comp2}': IRRDataCol1[0] - IRRDataCol2[0],
+                    # f'highest IRR diff of Traditional {comp1}/{comp2}': max(self.IRRData[self.df.columns[col1 + 1]]) - max(IRRDataTradCol2),
+                    # f'GNQTS highest IRR gain {comp1}/{comp2} ': (IRRDataAlgoCol1[0] - IRRDataAlgoCol2[0]) / IRRDataAlgoCol2[0] * 100, 
+                    # f'GNQTS avg IRR gain {comp1}/{comp2}': (np.average(IRRDataAlgoCol1) - np.average(IRRDataAlgoCol2)) / np.average(IRRDataAlgoCol2) * 100,
+                    # f'Traditional highest IRR gain {comp1}/{comp2} ': (IRRDataTradCol1[0] - IRRDataTradCol2[0]) / IRRDataTradCol2[0] * 100, 
+                    # f'Traditional avg IRR gain {comp1}/{comp2}': (np.average(IRRDataTradCol1) - np.average(IRRDataTradCol2)) / np.average(IRRDataTradCol2) * 100,
                 }
+                # if len(self.IRRData) > 3:
+                #     for techName in self.techNames:
+                #         data.update({techName: 1})
                 self.frontLen = len(data)
                 backData = {
                     # 訓練期才用
-                    # f'algo "Y" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1, col2) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y'])),
-                    # f'algo "H" "Q" "M" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1, col2) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M'])),
-                    # f'algo "D" "W" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1, col2) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)])),
+                    # f'GNQTS "Y" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1, col2) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y'])),
+                    # f'GNQTS "H" "Q" "M" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1, col2) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M'])),
+                    # f'GNQTS "D" "W" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1, col2) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)])),
                     
-                    # f'trad "Y" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y'])),
-                    # f'trad "H" "Q" "M" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M'])),
-                    # f'trad "D" "W" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)])),
+                    # f'Traditional "Y" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y'])),
+                    # f'Traditional "H" "Q" "M" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M'])),
+                    # f'Traditional "D" "W" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)])),
                     
-                    # f'algo "Y" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1, col2) and w[0] == 'Y']) / len([w for w in self.df.index if w[0] == 'Y']) * 100,
-                    # f'algo "H" "Q" "M" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1, col2) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')]) / len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']) * 100,
-                    # f'algo "D" "W" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1, col2) and ('W' in w or 'D' in w)]) / len([w for w in self.df.index if ('W' in w or 'D' in w)]) * 100,
+                    # f'GNQTS "Y" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1, col2) and w[0] == 'Y']) / len([w for w in self.df.index if w[0] == 'Y']) * 100,
+                    # f'GNQTS "H" "Q" "M" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1, col2) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')]) / len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']) * 100,
+                    # f'GNQTS "D" "W" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1, col2) and ('W' in w or 'D' in w)]) / len([w for w in self.df.index if ('W' in w or 'D' in w)]) * 100,
                     
-                    # f'trad "Y" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and w[0] == 'Y']) / len([w for w in self.df.index if w[0] == 'Y']) * 100,
-                    # f'trad "H" "Q" "M" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')]) / len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']) * 100,
-                    # f'trad "D" "W" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and ('W' in w or 'D' in w)]) / len([w for w in self.df.index if ('W' in w or 'D' in w)]) * 100,
+                    # f'Traditional "Y" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and w[0] == 'Y']) / len([w for w in self.df.index if w[0] == 'Y']) * 100,
+                    # f'Traditional "H" "Q" "M" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')]) / len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']) * 100,
+                    # f'Traditional "D" "W" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and ('W' in w or 'D' in w)]) / len([w for w in self.df.index if ('W' in w or 'D' in w)]) * 100,
                     # 訓練期才用
                 }
                 self.backLen = len(backData)
@@ -463,7 +487,8 @@ class split_IRR_draw:
             if split_IRR_draw.reorder:
                 figCnt = 1
             else:
-                figCnt = (lambda x: 2 if x < 5 else 3)(len(self.df.columns))
+                # figCnt = (lambda x: 2 if x < 5 else 3)(len(self.df.columns))
+                figCnt = 3
             
             # 將過長的df切開
             dfCuttedIndex = list()
@@ -531,10 +556,10 @@ class split_IRR_draw:
                 # 設定其他屬性
                 barAx.grid(axis='y')
                 barAx.yaxis.set_major_formatter(mtick.PercentFormatter())  #把座標變成%
-                barAx.locator_params(axis='y', nbins=10)
+                # barAx.locator_params(axis='y', nbins=10)
                 barAx.set_xticklabels(subDf.index, rotation=(lambda x: 90 if x else 45)(split_IRR_draw.reorder))
                 barAx.set(xlabel='', ylabel='')
-                barAx.tick_params(axis='x', labelsize=split_IRR_draw.allFontSize)  #設定xlabel ylabel字形大小
+                barAx.tick_params(axis='x', labelsize=split_IRR_draw.allFontSize + 6)  #設定xlabel ylabel字形大小
                 barAx.tick_params(axis='y', labelsize=10)
                 
                 # 設定lable顏色
@@ -542,7 +567,7 @@ class split_IRR_draw:
                     txt = cellText.get_text()
                     for slideGroup in split_IRR_draw.slidingLableClrList:
                         if txt in slideGroup[0]:
-                            plt.setp(cellText, bbox=dict(boxstyle='round', edgecolor='none', alpha=1, facecolor=slideGroup[1]))
+                            plt.setp(cellText, bbox=dict(boxstyle='round, pad=0.15', edgecolor='none', alpha=1, facecolor=slideGroup[1]))
                             break
                 # if len(self.df.columns) > 4:
                 #     continue
@@ -580,10 +605,38 @@ class split_IRR_draw:
             fig.savefig(figName, dpi=fig.dpi, bbox_inches='tight')
             plt.clf()
         
-x = split_IRR_draw(IRRFileName='windowRank_mixed_train_Tradition', 
+csv=[
+        "windowRank_test_HI-all_GNQTS",
+        "windowRank_test_HI-all_Tradition"
+        "windowRank_test_HI-RS_GNQTS",
+        "windowRank_test_HI-SR_Tradition",
+        "windowRank_test_RSI_GNQTS",
+        "windowRank_test_RSI_Tradition",
+        "windowRank_test_SMA_GNQTS",
+        "windowRank_test_SMA_Tradition",
+        "windowRank_train_all-average_GNQTS",
+        "windowRank_train_HI-all_GNQTS",
+        "windowRank_train_HI-all_Tradition",
+        "windowRank_train_RSI_GNQTS",
+        "windowRank_train_RSI_Tradition",
+        "windowRank_train_SMA_GNQTS",
+        "windowRank_train_SMA_Tradition",
+    ]
+
+x = split_IRR_draw(IRRFileName='test_IRR_name_sorted_RSI', 
                    splitIRRFile=True, 
                    drawBar=True, 
                    drawTable=False, 
                    seperateTable=True, 
                    reorder=False, 
                    setCompany='all')
+
+# for xx in csv:
+#     print(xx)
+#     x = split_IRR_draw(IRRFileName=xx, 
+#                    splitIRRFile=True, 
+#                    drawBar=False, 
+#                    drawTable=False, 
+#                    seperateTable=True, 
+#                    reorder=False, 
+#                    setCompany='all')

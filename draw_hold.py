@@ -28,7 +28,8 @@ class draw_hold_period:
         os.chdir(self.workRoot)
         
         if setCompany != 'all':
-            self.allCompay = [setCompany]
+            setCompany = setCompany.split(',')
+            self.allCompay = setCompany
         else:
             self.allCompay = [dir for dir in os.listdir() if os.path.isdir(dir)]
         
@@ -258,8 +259,8 @@ class draw_hold_period:
     
 x = draw_hold_period(
     year='2021', 
-    tech='SMA_RSI', 
-    isTrain=True, 
+    tech='RSI_SMA_2', 
+    isTrain=False, 
     isTradition=False, 
     draw=True, 
-    setCompany='all')
+    setCompany='^DJI,^INX,^IXIC,^NYA')
