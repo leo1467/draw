@@ -1,3 +1,4 @@
+from curses import window
 from math import floor
 from math import ceil
 import matplotlib.pyplot as plt
@@ -80,7 +81,9 @@ class split_IRR_draw:
     allFontSize = 14
     
     def __init__(self, IRRFileName, splitIRRFile, drawTable, drawBar, seperateTable, reorder, setCompany):
-        if "windowRank" in IRRFileName:
+        if 'windowRank' in IRRFileName:
+            if not os.path.isdir('windowRank'):
+                os.mkdir('windowRank')
             self.draw_rank(IRRFileName)
         else:    
             split_IRR_draw.seperateTable = seperateTable or drawBar
