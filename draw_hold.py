@@ -13,13 +13,13 @@ class draw_hold_period:
     allFontSize = 15
     companiesTradeInfo = dict()
     
-    def __init__(self, year, tech, isTrain, isTradition, draw, setCompany):
+    def __init__(self, year, tech, everyHold, isTrain, isTradition, drawBestHold, clearFile, setCompany):
         self.tech = tech
-        self.draw = draw
-        self.algoOrTrad = (lambda x: 'Tradition' if x == 1 else '')(isTradition)
-        self.trainOrTest = (lambda x: 'train' if x == 1 else 'test')(isTrain)
-        self.scatterClr = {'buy': 'black', 'sell date': 'lime', f'sell {self.tech}': 'yellow'}
-        self.scatterMarker = {'buy': '.', 'sell date': '.', f'sell {self.tech}': '.'}
+        self.drawBestHold = drawBestHold
+        self.algoOrTrad = (lambda x: 'Tradition' if x == True else '')(isTradition)
+        self.trainOrTest = (lambda x: 'train' if x == True else 'test')(isTrain)
+        self.scatterClr = {'buy': 'black', 'sell date': 'lime', 'sell': 'yellow'}
+        self.scatterMarker = {'buy': '.', 'sell date': '.', 'sell': '.'}
         
         os.chdir('../')
         parentFolder = os.getcwd()
@@ -32,8 +32,10 @@ class draw_hold_period:
             self.allCompay = setCompany
         else:
             self.allCompay = [dir for dir in os.listdir() if os.path.isdir(dir)]
-        
-        self.allBestHoldPath = [i + f'/{self.trainOrTest + self.algoOrTrad}BestHold/' for i in self.allCompay]
+        if everyHold == True:
+            self.holdPath = [i + f'/{self.trainOrTest + self.algoOrTrad}Hold/' for i in self.allCompay]
+        else:
+            self.holdPath = [i + f'/{self.trainOrTest + self.algoOrTrad}BestHold/' for i in self.allCompay]
         
         self.fig = draw_hold_period.fig
         gridNum = 24
@@ -46,19 +48,65 @@ class draw_hold_period:
             # left=0.17, 
             # right=0.845
             )
-        for bestHoldDir in self.allBestHoldPath:
-            os.chdir(bestHoldDir)
-            holdFile = [i for i in glob.glob(f"*{file_extension}") if 'hold' in i]
-            print(holdFile)
-            for file in holdFile:
-                if not isTrain or self.check_symmetric(file):
-                    self.process_file_and_draw(file)
+        for holdDir in self.holdPath:
+            os.chdir(holdDir)
+            if len(clearFile):
+                filesToDel = [i for i in glob.glob(f"*{clearFile}")]
+                for fileToDel in filesToDel:
+                    os.remove(fileToDel)
+            else:
+                holdFile = [i for i in glob.glob(f"*{file_extension}") if 'hold' in i]
+                for file in holdFile:
+                    if everyHold == True:
+                        self.draw_fundLv(file)
+                    else :
+                        if not isTrain or self.check_symmetric(file):
+                            self.process_file_and_draw(file)
             for i in range(2):
                 os.chdir('../')
         self.output_tradeInfo()
+    
+    def draw_fundLv(self, file):
+        df = pd.read_csv(file, index_col=0, usecols=[0, 7, 8])
+        if df[df.columns[0]].iloc[-1] < df[df.columns[1]].iloc[-1] or df[df.columns[0]].iloc[-1] < 10000000:
+            return
+        # if len([i for i, j in zip(df[df.columns[0]], df[df.columns[1]]) if i > j]) < len(df) * 0.5:
+        #     return
+        print(file)
+        ax = self.fig.add_subplot(self.gs[:, :])
+        ax.plot(df.index, df[df.columns[0]], label=df.columns[0], color='lightgray', linewidth=4)
+        ax.plot(df.index, df[df.columns[1]], label=df.columns[1], color='red', linewidth=4)
+        yearIndexes = []
+        year = 0
+        for i, date in enumerate(df.index):
+            nowYear = date.split('-')[0]
+            if year != nowYear:
+                yearIndexes.append(i)
+                year = nowYear
+        yearIndexes.append(len(df) - 1)
+        ax.xaxis.set_ticks(yearIndexes)
+        ax.tick_params(axis='both', which='major', labelsize=draw_hold_period.allFontSize + 5)
+        ax.legend(prop={'size': draw_hold_period.allFontSize + 5})
+        # handles, labels = ax.get_legend_handles_labels()
+        # ax.legend(
+        #     handles, labels, 
+        #     loc='upper right', 
+        #     bbox_to_anchor=(1, 1.3), 
+        #     fancybox=True, shadow=False, 
+        #     ncol=len(df.columns), 
+        #     fontsize=draw_hold_period.allFontSize + 5)
+        ax.grid()
+        fileTitle = self.tech + '_' + '_'.join(file.split('_')[0:-1]) + '_fund_lv' 
+        figTitle = fileTitle.replace('_', ' ')
+        self.fig.suptitle(
+            figTitle, 
+            y=1.02,
+            fontsize=draw_hold_period.allFontSize + 5)
+        plt.savefig(fileTitle + '.png', dpi=draw_hold_period.fig.dpi, bbox_inches='tight')
+        plt.clf()
 
     def check_symmetric(self, file):
-        window = file.split('_')[1]
+        window = file.split('_')[-2]
         if not window[0].isnumeric:
             if window[-1] == '#':
                 return False
@@ -68,8 +116,9 @@ class draw_hold_period:
         return window.split(windowType)[0] == window.split(windowType)[1]
     
     def process_file_and_draw(self, file):
-        companyName = file.split('_')[0]
-        df = pd.read_csv(file, index_col=0)
+        print(file)
+        companyName = file.split('_')[2]
+        df = pd.read_csv(file, index_col=0, usecols=[i for i in range(7)])
         yearIndexes = []
         year = 0
         for i, date in enumerate(df.index):
@@ -78,7 +127,7 @@ class draw_hold_period:
                 yearIndexes.append(i)
                 year = nowYear
         yearIndexes.append(len(df))
-        if not self.draw:
+        if not self.drawBestHold:
             yearIndexes = [yearIndexes[0], yearIndexes[-1]]
         for yearIndex in range(len(yearIndexes)):
         # for yearIndex in range(len(yearIndexes) - 1, len(yearIndexes)):
@@ -91,7 +140,7 @@ class draw_hold_period:
             tradeInfo = self.record_tradInfo(newDf)
             tableDf = self.make_tableDf(tradeInfo, yearIndexes, yearIndex, newDf, companyName)
             
-            if self.draw:
+            if self.drawBestHold:
                 self.draw_table(tableDf)
                 self.plot_hold(file, df, newDf, yearIndexes, yearIndex, tradeInfo)
     
@@ -104,15 +153,15 @@ class draw_hold_period:
         # buyY = newDf['buy'].values[newDf.index.isin(buyX)]
         tradeInfo.update(self.make_Series('buy', buyX, buyY))
         
+        sellTechConditionX = [i for i in newDf.index if not pd.isna(newDf.at[i, 'sell'])]
+        sellTechConditionY = [i for i in newDf['sell'] if not pd.isna(i)]
+        tradeInfo.update(self.make_Series('sell', sellTechConditionX, sellTechConditionY))
+        
         sellDateX = [i for i in newDf.index if not pd.isna(newDf.at[i, 'sell date'])]
         sellDateY = [i for i in newDf['sell date'] if not pd.isna(i)]
         tradeInfo.update(self.make_Series('sell date', sellDateX, sellDateY))
         
-        sellTechConditionX = [i for i in newDf.index if not pd.isna(newDf.at[i, f'sell {self.tech}'])]
-        sellTechConditionY = [i for i in newDf[f'sell {self.tech}'] if not pd.isna(i)]
-        tradeInfo.update(self.make_Series(f'sell {self.tech}', sellTechConditionX, sellTechConditionY))
-        
-        sellX = [i for i in newDf.index if not pd.isna(newDf.at[i, 'sell date']) or not pd.isna(newDf.at[i, f'sell {self.tech}'])]
+        sellX = [i for i in newDf.index if not pd.isna(newDf.at[i, 'sell date']) or not pd.isna(newDf.at[i, 'sell'])]
         sellY = list(newDf['Price'].values[newDf.index.isin(sellX)])
         tradeInfo.update(self.make_Series('sell', sellX, sellY))
         
@@ -127,8 +176,8 @@ class draw_hold_period:
         
         cellData.update({'buy Num': len(tradeInfo['buy'].index)})
         cellData.update({'sell Num': len(tradeInfo['sell'].index)})
+        cellData.update({'sell': len(tradeInfo['sell'].index)})
         cellData.update({'sell date': len(tradeInfo['sell date'].index)})
-        cellData.update({f'sell {self.tech}': len(tradeInfo[f'sell {self.tech}'].index)})
         
         buyY = tradeInfo['buy'].copy()
         sellY = tradeInfo['sell'].copy()
@@ -183,7 +232,7 @@ class draw_hold_period:
         # 不知道為什麼會有warning(跟下面的功能一樣)
         # ax.scatter(newDf.index, newDf['buy'], label='buy', color='black', s=40, zorder=10)
         # ax.scatter(newDf.index, newDf['sell date'], label='sell date', color='lime', s=40, zorder=10)
-        # ax.scatter(newDf.index, newDf[f'sell {self.tech}'], label=f'sell {self.tech}', color='yellow', s=40, zorder=10)
+        # ax.scatter(newDf.index, newDf['sell'], label='sell', color='yellow', s=40, zorder=10)
         
         # 打開可以畫點
         # if yearIndex != len(yearIndexes) - 1:
@@ -230,7 +279,7 @@ class draw_hold_period:
             fancybox=True, shadow=False, 
             ncol=len(newDf.columns), 
             fontsize=draw_hold_period.allFontSize)
-        fileTitle = self.tech + '_' + self.trainOrTest + '_' + file.replace('.csv', '_')
+        fileTitle = file.replace('.csv', '_')
         if yearIndex == len(yearIndexes) - 1:
             fileTitle += df.index[0].split('-')[0] + '-' + df.index[len(df.index) - 1].split('-')[0]
         else:
@@ -259,8 +308,10 @@ class draw_hold_period:
     
 x = draw_hold_period(
     year='2021', 
-    tech='RSI_SMA_2', 
+    tech='SMA_RSI_3', 
+    everyHold=False, 
     isTrain=False, 
     isTradition=False, 
-    draw=True, 
-    setCompany='^DJI,^INX,^IXIC,^NYA')
+    drawBestHold=True, 
+    clearFile='', 
+    setCompany='all')
