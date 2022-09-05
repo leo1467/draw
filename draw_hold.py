@@ -5,17 +5,15 @@ import pandas as pd
 import glob
 import os
 
-root = os.getcwd()
-file_extension = '.csv'
-
 class draw_hold_period:
+    root = os.getcwd()
     fig = plt.figure(figsize=[21, 9], dpi=300, constrained_layout=True)
     allFontSize = 15
     companiesTradeInfo = dict()
     
-    def __init__(self, year, tech, everyHold, isTrain, isTradition, drawBestHold, clearFile, setCompany):
+    def __init__(self, expFolder, resultFolder, tech, fundLV, bestHold, isTrain, isTradition, delFile, setCompany):
         self.tech = tech
-        self.drawBestHold = drawBestHold
+        self.drawBestHold = bestHold
         self.algoOrTrad = (lambda x: 'Tradition' if x == True else '')(isTradition)
         self.trainOrTest = (lambda x: 'train' if x == True else 'test')(isTrain)
         self.scatterClr = {'buy': 'black', 'sell date': 'lime', 'sell': 'yellow'}
@@ -23,8 +21,8 @@ class draw_hold_period:
         
         os.chdir('../')
         parentFolder = os.getcwd()
-        self.workRoot = [dir for dir in glob.glob(parentFolder + '/**/**/**') if 'exp_result' in dir and year in dir][0] + f'/result_{self.tech}/'
-        self.workRoot = self.workRoot.replace(parentFolder + '/', '')
+        self.workRoot = [dir for dir in glob.glob(parentFolder + '/**/**') if expFolder in dir][0] + f'/{resultFolder}/result_{self.tech}/'
+        # self.workRoot = self.workRoot.replace(parentFolder + '/', '')
         os.chdir(self.workRoot)
         
         if setCompany != 'all':
@@ -32,7 +30,7 @@ class draw_hold_period:
             self.allCompay = setCompany
         else:
             self.allCompay = [dir for dir in os.listdir() if os.path.isdir(dir)]
-        if everyHold == True:
+        if fundLV == True:
             self.holdPath = [i + f'/{self.trainOrTest + self.algoOrTrad}Hold/' for i in self.allCompay]
         else:
             self.holdPath = [i + f'/{self.trainOrTest + self.algoOrTrad}BestHold/' for i in self.allCompay]
@@ -50,14 +48,14 @@ class draw_hold_period:
             )
         for holdDir in self.holdPath:
             os.chdir(holdDir)
-            if len(clearFile):
-                filesToDel = [i for i in glob.glob(f"*{clearFile}")]
+            if delFile[0]:
+                filesToDel = [i for i in glob.glob(f"*{delFile[1]}")]
                 for fileToDel in filesToDel:
                     os.remove(fileToDel)
             else:
-                holdFile = [i for i in glob.glob(f"*{file_extension}") if 'hold' in i]
+                holdFile = [i for i in glob.glob(f"*{'.csv'}") if 'hold' in i]
                 for file in holdFile:
-                    if everyHold == True:
+                    if fundLV == True:
                         self.draw_fundLv(file)
                     else :
                         if not isTrain or self.check_symmetric(file):
@@ -142,7 +140,7 @@ class draw_hold_period:
             
             if self.drawBestHold:
                 self.draw_table(tableDf)
-                self.plot_hold(file, df, newDf, yearIndexes, yearIndex, tradeInfo)
+                self.draw_hold(file, df, newDf, yearIndexes, yearIndex, tradeInfo)
     
     def record_tradInfo(self, newDf):
         tradeInfo = dict()
@@ -223,7 +221,7 @@ class draw_hold_period:
         topTable.auto_set_font_size(False)
         topTable.set_fontsize('large')  # xx-small, x-small, small, medium, large, x-large, xx-large, larger, smaller, None
         
-    def plot_hold(self, file, df, newDf, yearIndexes, yearIndex, tradeInfo):
+    def draw_hold(self, file, df, newDf, yearIndexes, yearIndex, tradeInfo):
         ax = self.fig.add_subplot(self.gs[1:, :])
         ax.plot(newDf.index, newDf['Price'], label='Price', color='steelblue', linewidth=4)
         ax.plot(newDf.index, newDf['hold 1'], label='Hold', color='darkorange', linewidth=4)
@@ -307,11 +305,12 @@ class draw_hold_period:
                 self.companiesTradeInfo[companyName].to_csv(filename, mode='a', header=None)
     
 x = draw_hold_period(
-    year='2021', 
+    expFolder='exp_result', 
+    resultFolder='result_2021', 
     tech='SMA_RSI_3', 
-    everyHold=False, 
+    fundLV=False, 
+    bestHold=True, 
     isTrain=False, 
     isTradition=False, 
-    drawBestHold=True, 
-    clearFile='', 
+    delFile=[False, ''], 
     setCompany='all')
