@@ -1,4 +1,3 @@
-from curses import window
 from math import floor
 from math import ceil
 import matplotlib.pyplot as plt
@@ -7,8 +6,6 @@ import pandas as pd
 import glob
 import os
 import matplotlib.ticker as mtick
-from regex import F
-from sympy import false
 
 file_extension = '.csv'
 root = os.getcwd()
@@ -81,10 +78,12 @@ class split_IRR_draw:
     allFontSize = 14
     
     def __init__(self, IRRFileName, splitIRRFile, drawTable, drawBar, seperateTable, reorder, setCompany):
-        if 'windowRank' in IRRFileName:
-            if not os.path.isdir('windowRank'):
-                os.mkdir('windowRank')
-            self.draw_rank(IRRFileName)
+        if type(IRRFileName) == list:
+            # if not os.path.isdir('windowRank'):
+            #     os.mkdir('windowRank')
+            os.chdir('windowRank')
+            for file in IRRFileName:
+                self.draw_rank(file)
         else:    
             split_IRR_draw.seperateTable = seperateTable or drawBar
             split_IRR_draw.reorder = reorder
@@ -201,7 +200,9 @@ class split_IRR_draw:
                     x=0.025, 
                     y=1.03, 
                     fontsize=split_IRR_draw.allFontSize)
-        self.fig.savefig(IRRFileName + '_noBH.png', dpi=self.fig.dpi, bbox_inches='tight')
+        if 'B&H' not in rankDf.columns:
+            IRRFileName += '_noBH'
+        self.fig.savefig(IRRFileName + '.png', dpi=self.fig.dpi, bbox_inches='tight')
         plt.clf()
 
     class ProcessACompany:
@@ -610,20 +611,20 @@ class split_IRR_draw:
         
 csv=[
         "windowRank_test_HI-all_GNQTS",
-        "windowRank_test_HI-all_Tradition"
-        "windowRank_test_HI-RS_GNQTS",
-        "windowRank_test_HI-SR_Tradition",
-        "windowRank_test_RSI_GNQTS",
-        "windowRank_test_RSI_Tradition",
-        "windowRank_test_SMA_GNQTS",
-        "windowRank_test_SMA_Tradition",
-        "windowRank_train_all-average_GNQTS",
-        "windowRank_train_HI-all_GNQTS",
-        "windowRank_train_HI-all_Tradition",
-        "windowRank_train_RSI_GNQTS",
-        "windowRank_train_RSI_Tradition",
-        "windowRank_train_SMA_GNQTS",
-        "windowRank_train_SMA_Tradition",
+        "windowRank_test_HI-all_Tradition", 
+        "windowRank_test_HI-RS_GNQTS", 
+        "windowRank_test_HI-SR_Tradition", 
+        "windowRank_test_RSI_GNQTS", 
+        "windowRank_test_RSI_Tradition", 
+        "windowRank_test_SMA_GNQTS", 
+        "windowRank_test_SMA_Tradition", 
+        "windowRank_train_all-average_GNQTS", 
+        "windowRank_train_HI-all_GNQTS", 
+        "windowRank_train_HI-all_Tradition", 
+        "windowRank_train_RSI_GNQTS", 
+        "windowRank_train_RSI_Tradition", 
+        "windowRank_train_SMA_GNQTS", 
+        "windowRank_train_SMA_Tradition", 
     ]
 
 x = split_IRR_draw(IRRFileName='test_IRR_name_sorted_RSI', 
@@ -634,12 +635,10 @@ x = split_IRR_draw(IRRFileName='test_IRR_name_sorted_RSI',
                    reorder=False, 
                    setCompany='all')
 
-# for xx in csv:
-#     print(xx)
-#     x = split_IRR_draw(IRRFileName=xx, 
-#                    splitIRRFile=True, 
-#                    drawBar=False, 
-#                    drawTable=False, 
-#                    seperateTable=True, 
-#                    reorder=False, 
-#                    setCompany='all')
+# x = split_IRR_draw(IRRFileName=csv, 
+#                 splitIRRFile=True, 
+#                 drawBar=False, 
+#                 drawTable=False, 
+#                 seperateTable=True, 
+#                 reorder=False, 
+#                 setCompany='all')
