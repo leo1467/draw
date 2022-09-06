@@ -627,7 +627,7 @@ csv=[
         "windowRank_train_SMA_Tradition", 
     ]
 
-x = split_IRR_draw(IRRFileName='test_IRR_name_sorted_RSI', 
+x = split_IRR_draw(IRRFileName='train_IRR_name_sorted_tech_highest_IRR_apearance',  # 若是compare類型，reorder要true，且csv內最多三個指標，超過放不下
                    splitIRRFile=True, 
                    drawBar=True, 
                    drawTable=False, 
