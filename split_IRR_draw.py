@@ -10,7 +10,7 @@ import matplotlib.ticker as mtick
 file_extension = '.csv'
 root = os.getcwd()
 
-class split_IRR_draw:
+class split_ARR_draw:
     # 設定滑動視窗group
     slidingLableClrList = [
         [['YYY2YYY', 'YYY2YY', 'YYY2Y', 'YYY2YH', 'YY2YY', 'YY2YH', 'YY2Y', 'YH2YH', 'YH2Y', 'Y2Y'], 'gold'],
@@ -20,16 +20,6 @@ class split_IRR_draw:
         [['4W4', '4W3', '4W2', '4W1', '3W3', '3W2', '3W1', '2W2', '2W1', '1W1'], 'darkgoldenrod'],
         [['5D4', '5D3', '5D2', '4D4', '4D3', '4D2', '3D3', '3D2', '2D2'], 'w']
         ]
-    # slidingLableClrList = [ # 
-    #     [['YYY2YYY', 'YYY2YY', 'YYY2YH', 'YYY2Y', 'YYY2H', 'YYY2Q', 'YYY2M', ], 'gold'],
-    #     [['YY2YY', 'YY2YH', 'YY2Y', 'YY2H', 'YY2Q', 'YY2M', ], 'limegreen'], 
-    #     [['YH2YH', 'YH2Y', 'YH2H', 'YH2Q', 'YH2M', ], 'purple'], 
-    #     [['Y2Y', 'Y2H', 'Y2Q', 'Y2M', ], 'pink'], 
-    #     [['H#', 'H2H', 'H2Q', 'H2M', 'Q#', 'Q2Q', 'Q2M', 'M#', 'M2M'], 'r'],
-    #     [['20D20', '20D15', '20D10', '20D5', '15D15', '15D10', '15D5', '10D10', '10D5', '5D5'], 'grey'],
-    #     [['4W4', '4W3', '4W2', '4W1', '3W3', '3W2', '3W1', '2W2', '2W1', '1W1'], 'darkgoldenrod'],
-    #     [['5D4', '5D3', '5D2', '4D4', '4D3', '4D2', '3D3', '3D2', '2D2'], 'w']
-    #     ]
     reorderList = [
         'B&H',
         'YYY2YYY', 'YYY2YY', 'YYY2YH', 'YYY2Y', 'YYY2H', 'YYY2Q', 'YYY2M', 
@@ -44,29 +34,16 @@ class split_IRR_draw:
         '4D4', '4D3', '4D2', 
         '3D3', '3D2', 
         '2D2']
-    # reorderList = [
-    #     'B&H',
-    #     'YYY2YYY', 'YYY2YY', 'YYY2Y', 'YYY2YH', 'YY2YY', 'YY2YH', 'YY2Y', 'YH2YH', 'YH2Y', 'Y2Y', 
-    #     'YYY2H', 'YYY2Q', 'YYY2M', 'YY2H', 'YY2Q', 'YY2M', 'YH2H', 'YH2Q', 'YH2M', 'Y2H', 'Y2Q', 'Y2M', 
-    #     'H#', 'H2H', 'H2Q', 'H2M', 'Q#', 'Q2Q', 'Q2M', 'M#', 'M2M', 
-    #     '20D20', '20D15', '20D10', '20D5', '15D15', '15D10', '15D5', '10D10', '10D5', '5D5', 
-    #     '4W4', '4W3', '4W2', '4W1', '3W3', '3W2', '3W1', '2W2', '2W1', '1W1', 
-    #     '5D4', '5D3', '5D2', '4D4', '4D3', '4D2', '3D3', '3D2', '2D2'
-    #     ]
-    # reorderList = [
-    #     'B&H',
-    #     'YYY2YYY', 'YYY2YY' ,'YYY2YH', 'YY2YY', 'YYY2Y', 'YY2YH', 'YYY2H', 'YYY2Q', 'YYY2M', 'YH2YH', 'YY2Y', 'YH2Y', 'YY2H', 'YY2Q', 'YY2M', 'Y2Y', 'YH2H', 'YH2Q', 'YH2M', 'Y2H', 'Y2Q', 'Y2M', 'H#', 'H2H', 'H2Q', 'H2M', 'Q#', 'Q2Q', 'Q2M', 'M#', 'M2M', 
-    #     '20D20', '4W4', '20D15', '4W3', '20D10', '4W2', '20D5', '4W1', '15D15', '3W3', '15D10', '3W2', '15D5', '3W1', '10D10', '2W2', '10D5', '2W1', '5D5', '1W1', 
-    #     '5D4', '5D3', '5D2', '4D4', '4D3', '4D2', '3D3', '3D2', '2D2'
-    #     ]
+    
     # 設定bar屬性
     barColorSet = ['steelblue', 'darkorange', 'paleturquoise', 'wheat', 'lightcyan', 'lightyellow', 'red']
     BHColor = 'r'
     totalBarWidth = 0.80
+    
     # 儲存全部table資料
     tables = {}
+    
     # 設定figure大小
-    # plt.rcParams['figure.figsize'] = (21, 9)
     fig = plt.figure(
         figsize=[21, 9], 
         dpi=300, 
@@ -77,78 +54,81 @@ class split_IRR_draw:
         )
     allFontSize = 14
     
-    def __init__(self, IRRFileName, splitIRRFile, drawTable, drawBar, seperateTable, reorder, setCompany):
-        if type(IRRFileName) == list:
+    def __init__(self, ARRFileName, splitARRFile, drawTable, drawBar, seperateTable, reorder, setCompany):
+        if type(ARRFileName) == list:
             # if not os.path.isdir('windowRank'):
             #     os.mkdir('windowRank')
             os.chdir('windowRank')
-            for file in IRRFileName:
+            for file in ARRFileName:
                 self.draw_rank(file)
         else:    
-            split_IRR_draw.seperateTable = seperateTable or drawBar
-            split_IRR_draw.reorder = reorder
-            if split_IRR_draw.reorder:
-                split_IRR_draw.reorderList.reverse()
-            self.IRRFileName = IRRFileName + '.csv'
-            self.dirName = 'split_' + self.IRRFileName.split('.')[0]
+            split_ARR_draw.seperateTable = seperateTable or drawBar
+            split_ARR_draw.reorder = reorder
+            if split_ARR_draw.reorder:
+                split_ARR_draw.reorderList.reverse()
+            self.ARRFileName = ARRFileName + '.csv'
+            self.dirName = 'split_' + self.ARRFileName.split('.')[0]
             
-            print(self.IRRFileName)
+            print(self.ARRFileName)
             self.process_fileName_dir()
             
-            if splitIRRFile:
+            if splitARRFile:
                 self.split_csv()
             else:
                 os.chdir(self.dirName)
             
             if setCompany == 'all':
-                self.allIRRFile = [i for i in glob.glob(f"*{file_extension}")]
+                self.allARRFile = [i for i in glob.glob(f"*{file_extension}")]
             else:
-                self.allIRRFile = [i for i in glob.glob(f"*{file_extension}") if setCompany in i]
+                self.allARRFile = [i for i in glob.glob(f"*{file_extension}") if setCompany in i]
             
-            for FileIndex, file in enumerate(self.allIRRFile):
+            for FileIndex, file in enumerate(self.allARRFile):
                 processACompany = self.ProcessACompany(FileIndex, file)
-                fig = split_IRR_draw.fig
+                fig = split_ARR_draw.fig
                 gs, gridNum = processACompany.set_grid(fig)
                 if drawTable:
                     processACompany.start_draw_tables(fig, gs)
                 if drawBar:
                     processACompany.draw_bar(fig, gs, gridNum)
                 # break
-            plt.close(split_IRR_draw.fig)
+            plt.close(split_ARR_draw.fig)
             
             # exit(0)
             os.chdir(root)
-            OutputTableFileName = IRRFileName.split('.')[0] + '_tables.csv'
+            
+            # =====印出所有table資料
+            OutputTableFileName = ARRFileName.split('.')[0] + '_tables.csv'
             for dfIndex, companyName in enumerate(self.tables):
                 self.tables[companyName].rename(index={0: companyName}, inplace=True)
                 if dfIndex == 0:
                     self.tables[companyName].to_csv(OutputTableFileName)
                 else:
                     self.tables[companyName].to_csv(OutputTableFileName, mode='a', header=None)
+            # =====印出所有table資料
     
     def split_csv(self):
-        self.IRRdf = pd.read_csv(self.IRRFileName, index_col=False)
-        if True in self.IRRdf.columns.str.contains('^Unnamed'):
-            self.IRRdf = self.IRRdf.loc[:, ~self.IRRdf.columns.str.contains('^Unnamed')]
-            self.IRRdf.to_csv(self.IRRFileName, index=None)
-        self.IRRdf = self.IRRdf.T.reset_index().T.reset_index(drop=True)
+        self.ARRdf = pd.read_csv(self.ARRFileName, index_col=False)
+        if True in self.ARRdf.columns.str.contains('^Unnamed'):
+            self.ARRdf = self.ARRdf.loc[:, ~self.ARRdf.columns.str.contains('^Unnamed')]
+            self.ARRdf.to_csv(self.ARRFileName, index=None)
+        self.ARRdf = self.ARRdf.T.reset_index().T.reset_index(drop=True)
         os.chdir(self.dirName)
-        index = [i for i in self.IRRdf.index if self.IRRdf.at[i, 0][0] == '=']
-        index.append(len(self.IRRdf))
+        index = [i for i in self.ARRdf.index if self.ARRdf.at[i, 0][0] == '=']
+        index.append(len(self.ARRdf))
         for cellIndex in range(len(index) - 1):
-            companyName = self.IRRdf.at[index[cellIndex], self.IRRdf.columns[0]].replace('=', '')
-            self.IRRdf.at[index[cellIndex], self.IRRdf.columns[0]] = 'window'
-            self.IRRdf[index[cellIndex]:index[cellIndex + 1]].to_csv(companyName + '_IRR.csv', header=None, index=None)
+            companyName = self.ARRdf.at[index[cellIndex], self.ARRdf.columns[0]].replace('=', '')
+            self.ARRdf.at[index[cellIndex], self.ARRdf.columns[0]] = 'window'
+            self.ARRdf[index[cellIndex]:index[cellIndex + 1]].to_csv(companyName + '_ARR.csv', header=None, index=None)
     
     def process_fileName_dir(self):
-        IRRFileNameList = self.IRRFileName.split('.')[0].split('_')
-        split_IRR_draw.allTitle = '_'.join(IRRFileNameList[IRRFileNameList.index('sorted') + 1:])
-        split_IRR_draw.trainOrTest = IRRFileNameList[0]
+        ARRFileNameList = self.ARRFileName.split('.')[0].split('_')
+        split_ARR_draw.allTitle = '_'.join(ARRFileNameList[ARRFileNameList.index('sorted') + 1:])
+        split_ARR_draw.trainOrTest = ARRFileNameList[0]
         if not os.path.isdir(self.dirName):
             os.mkdir(self.dirName)
     
-    def draw_rank(self, IRRFileName):
-        rankDf = pd.read_csv(IRRFileName + '.csv', index_col='window')
+    def draw_rank(self, ARRFileName):  # 畫windowRank
+        rankDf = pd.read_csv(ARRFileName + '.csv', index_col='window')
         rankDf = rankDf.drop('B&H')
         ax1, ax2, ax3 = self.fig.subplots(nrows=3, sharey=True)
         rankPlot = []
@@ -162,7 +142,7 @@ class split_IRR_draw:
             
             plotBar = subDf.plot.bar(
                 ax=ax, 
-                # width=split_IRR_draw.totalBarWidth, 
+                # width=split_ARR_draw.totalBarWidth, 
                 rot=0, 
                 # color=self.colorDict, 
                 edgecolor='black', 
@@ -174,7 +154,7 @@ class split_IRR_draw:
             ax.set_xticklabels(subDf.index, rotation=45)
             ax.set(xlabel='', ylabel='')
             ax.grid(axis='y')
-            ax.tick_params(axis='x', labelsize=split_IRR_draw.allFontSize + 6)  #設定xlabel ylabel字形大小
+            ax.tick_params(axis='x', labelsize=split_ARR_draw.allFontSize + 6)  # 設定xlabel ylabel字形大小
             ax.tick_params(axis='y', labelsize=10)
             for cellText in ax.get_xticklabels():
                     txt = cellText.get_text()
@@ -192,22 +172,22 @@ class split_IRR_draw:
             bbox_to_anchor=(1, 1.05), 
             fancybox=True, shadow=False, 
             ncol=1, 
-            fontsize=split_IRR_draw.allFontSize)
+            fontsize=split_ARR_draw.allFontSize)
         'windowRank_train_SMA_Tradition'
-        fileNameSplit = IRRFileName.split('_')
+        fileNameSplit = ARRFileName.split('_')
         self.fig.suptitle(fileNameSplit[2] + ' ' + fileNameSplit[1]+ ' ' + fileNameSplit[3] + ' ' + 'window ranking', 
                     ha='left', 
                     x=0.025, 
                     y=1.03, 
-                    fontsize=split_IRR_draw.allFontSize)
+                    fontsize=split_ARR_draw.allFontSize)
         if 'B&H' not in rankDf.columns:
-            IRRFileName += '_noBH'
-        self.fig.savefig(IRRFileName + '.png', dpi=self.fig.dpi, bbox_inches='tight')
+            ARRFileName += '_noBH'
+        self.fig.savefig(ARRFileName + '.png', dpi=self.fig.dpi, bbox_inches='tight')
         plt.clf()
 
     class ProcessACompany:
         def __init__(self, FileIndex, file):
-            self.IRRData = dict()
+            self.ARRData = dict()
             self.cellData = dict()
             self.tableNum = 0
             self.tablePlotObjs = list()
@@ -215,10 +195,9 @@ class split_IRR_draw:
             if file.split('.')[1] == 'csv':
                 self.process_df(file)
                 self.find_techNames()
-                self.process_IRRFile(FileIndex, file)
+                self.process_ARRFile(FileIndex, file)
 
-        def process_df(self, file):
-            # df前處理
+        def process_df(self, file):  # ARR file df前處理
             self.company = file.split('_')[0]
             self.df = pd.read_csv(file, index_col=0)
             # df.rename(columns = {df.columns[0]: 'window'}, inplace = True)
@@ -236,28 +215,27 @@ class split_IRR_draw:
             self.titleTechNames = [i + '"' for i in ['"' + j for j in self.techNames]]
             self.mixedTech = (lambda x: True if len(x.split('_')) > 1 else False)(self.techNames[0])
         
-        def process_IRRFile(self, FileIndex, file):
-            # table資料
-            for colIndex, col in enumerate(self.df.columns):
+        def process_ARRFile(self, FileIndex, file):
+            for colIndex, col in enumerate(self.df.columns):  # table資料，把ARR file資料依照每個column的ARR排序，不放入B&H
                 self.df.sort_values(by=col, ascending=False, inplace=True)
-                self.IRRData.update({col: pd.Series({self.df.index[i]: x for i, x in enumerate(self.df[col]) if self.df.index[i] != 'B&H'})})
+                self.ARRData.update({col: pd.Series({self.df.index[i]: x for i, x in enumerate(self.df[col]) if self.df.index[i] != 'B&H'})})
             
-            if split_IRR_draw.reorder:
-                self.df = self.df.reindex(split_IRR_draw.reorderList)
+            if split_ARR_draw.reorder:  # 這邊reorder
+                self.df = self.df.reindex(split_ARR_draw.reorderList)
             else:
                 self.df.sort_values(by=self.df.columns[0], ascending=False, inplace=True)
             
             if "window num" in self.df.columns:  # 如果是計算不同指數出現次數，下面就不用做
                 return
             
-            for i in range(self.techNum):
+            for i in range(self.techNum):  # 加入GNQTS及傳統資訊(若有副指標也加入其資訊)
                 self.add_info(self.techNames[i], '', i * 2, i * 2 + 1, False)
             
-            if self.techNum > 1:
+            if self.techNum > 1:  # 若有副指標，加入主指標與副指標的比較
                 for techIndex, row in zip(range(1, self.techNum), range(2, self.techNum * 2, 2)):
                     self.add_info(self.techNames[0], self.techNames[techIndex], 0, row, True)
             
-            if self.mixedTech and 'choose' in self.df.columns[-1]:
+            if self.mixedTech and 'choose' in self.df.columns[-1]:  # 若檔案是滑動視窗的選擇次數
                 windowChoose = list()
                 for techIndex, col in zip(range(1, self.techNum), range(self.techNum * 2, len(self.df.columns), 2)):
                     windowChoose.append(self.df[self.df.columns[col]] / self.df['window num'] * 100)
@@ -276,92 +254,93 @@ class split_IRR_draw:
                     continue
                 self.cellData[cellIndex] = cellData
             self.tableDf = pd.DataFrame([self.cellData])
-            split_IRR_draw.tables.update({self.company: self.tableDf})
+            split_ARR_draw.tables.update({self.company: self.tableDf})  # 把目前這間公司的資訊加入總table等待輸出
         
-        def add_info(self, comp1, comp2, col1, col2, techCompare):
-            IRRDataAlgoCol1 = self.IRRData[self.df.columns[col1]]
-            IRRDataAlgoCol2 = self.IRRData[self.df.columns[col2]]
-            IRRDataTradCol1 = self.IRRData[self.df.columns[col1 + 1]]
-            dfCol1 = self.df[self.df.columns[col1]].sort_values(ascending=False)
-            dfCol2 = self.df[self.df.columns[col1 + 1]].sort_values(ascending=False)
-            if 'B&H' in self.IRRData:
-                BHCol = self.IRRData['B&H'].iloc[:-1]
+        def add_info(self, comp1, comp2, col1, col2, techCompare):  # 加入不同ARR的比較資訊，放太多的話table的圖會放不下，不過csv一樣正常輸出
+            ARRDataAlgoCol1 = self.ARRData[self.df.columns[col1]]  # 主指標algo的ARR
+            ARRDataAlgoCol2 = self.ARRData[self.df.columns[col2]]  # 副指標algo的ARR
+            ARRDataTradCol1 = self.ARRData[self.df.columns[col1 + 1]]  #主指標tradition的ARR
+            dfCol1 = self.df[self.df.columns[col1]].sort_values(ascending=False)  # 按照主指標algo的ARR排序
+            dfCol2 = self.df[self.df.columns[col1 + 1]].sort_values(ascending=False)  #按照主指標tradition的ARR排序
+            if 'B&H' in self.ARRData:
+                BHCol = self.ARRData['B&H'].iloc[:-1]
             else:
                 BHCol = self.df[self.df.columns[0]].iloc[self.df.index.get_loc('B&H'):self.df.index.get_loc('B&H') + 1]
             if not techCompare:
-                data = {
-                    # 'GNQTS best window': IRRDataAlgoCol1.index[0],
-                    # 'GNQTS worst window': IRRDataAlgoCol1.index[-1], 
-                    # 'Traditional best window': IRRDataAlgoCol2.index[0],
-                    # 'Traditional worst window': IRRDataAlgoCol2.index[-1], 
-                    # 'B&H IRR': self.df.at['B&H', self.df.columns[col1]], 
-                    # 'GNQTS highest IRR': IRRDataAlgoCol1[0], 
-                    # 'GNQTS average IRR': np.average(IRRDataAlgoCol1), 
-                    # 'Traditional highest IRR': IRRDataTradCol1[0], 
-                    # 'Traditional average IRR': np.average(IRRDataAlgoCol2), 
-                    f'{comp1} GNQTS b/w w': IRRDataAlgoCol1.index[0] + '/' + IRRDataAlgoCol1.index[-1],
-                    f'{comp1} Traditional b/w w': IRRDataAlgoCol2.index[0] + '/' + IRRDataAlgoCol2.index[-1],
-                    f'{comp1} GNQTS best IRR': IRRDataAlgoCol1[0], 
-                    f'{comp1} GNQTS average IRR': np.average(IRRDataAlgoCol1), 
-                    f'{comp1} Traditional best IRR': IRRDataTradCol1[0], 
-                    f'{comp1} Traditional average IRR': np.average(IRRDataAlgoCol2), 
-                    f'{comp1} best B&H': BHCol.values.max(), 
-                    f'{comp1} B&H average': np.average(BHCol.values),
-                    # f'{comp1} yellow w': np.average([values for index, values in IRRDataAlgoCol1.items() if index in split_IRR_draw.slidingLableClrList[0][0]]), 
-                    # f'{comp1} green w': np.average([values for index, values in IRRDataAlgoCol1.items() if index in split_IRR_draw.slidingLableClrList[1][0]]), 
-                    # f'{comp1} red w': np.average([values for index, values in IRRDataAlgoCol1.items() if index in split_IRR_draw.slidingLableClrList[2][0]]), 
-                    # f'{comp1} grey w': np.average([values for index, values in IRRDataAlgoCol1.items() if index in split_IRR_draw.slidingLableClrList[3][0]]), 
-                    # f'{comp1} brown w': np.average([values for index, values in IRRDataAlgoCol1.items() if index in split_IRR_draw.slidingLableClrList[4][0]]), 
-                    # f'{comp1} white w': np.average([values for index, values in IRRDataAlgoCol1.items() if index in split_IRR_draw.slidingLableClrList[5][0]]), 
-                    # [f'{comp1} highest IRR diff GNQTS/Traditional', IRRDataCol1[0] - IRRDataCol2[0]], 
+                data = {  # 單一個指標的比較
+                    # 'GNQTS best window': ARRDataAlgoCol1.index[0],  # GNQTS最好滑動視窗
+                    # 'GNQTS worst window': ARRDataAlgoCol1.index[-1], # GNQTS最差滑動視窗
+                    # 'Traditional best window': ARRDataAlgoCol2.index[0],  # 傳統最好滑動視窗
+                    # 'Traditional worst window': ARRDataAlgoCol2.index[-1],  # 傳統最差滑動視窗
+                    # 'B&H ARR': self.df.at['B&H', self.df.columns[col1]],  # B&H的ARR
+                    # 'GNQTS highest ARR': ARRDataAlgoCol1[0],  # GNQTS最高ARR
+                    # 'GNQTS average ARR': np.average(ARRDataAlgoCol1),  # GNQTS平均ARR
+                    # 'Traditional highest ARR': ARRDataTradCol1[0],  # 傳統最高ARR
+                    # 'Traditional average ARR': np.average(ARRDataAlgoCol2),  # 傳統平均ARR
+                    f'{comp1} GNQTS b/w w': ARRDataAlgoCol1.index[0] + '/' + ARRDataAlgoCol1.index[-1],  # GNQTS最好最差滑動視窗
+                    f'{comp1} Traditional b/w w': ARRDataAlgoCol2.index[0] + '/' + ARRDataAlgoCol2.index[-1],  # 傳統最好最差滑動視窗
+                    f'{comp1} GNQTS best ARR': ARRDataAlgoCol1[0],  # GNQTS最高ARR
+                    f'{comp1} GNQTS average ARR': np.average(ARRDataAlgoCol1),  # GNQTS平均ARR
+                    f'{comp1} Traditional best ARR': ARRDataTradCol1[0],  # 傳統最高ARR
+                    f'{comp1} Traditional average ARR': np.average(ARRDataAlgoCol2),  # 傳統平均ARR
+                    f'{comp1} best B&H': BHCol.values.max(),  # 最高B&H的ARR
+                    f'{comp1} B&H average': np.average(BHCol.values),  # B&H平均ARR
+                    # =====不同顏色滑動視窗的平均ARR
+                    # f'{comp1} yellow w': np.average([values for index, values in ARRDataAlgoCol1.items() if index in split_ARR_draw.slidingLableClrList[0][0]]), 
+                    # f'{comp1} green w': np.average([values for index, values in ARRDataAlgoCol1.items() if index in split_ARR_draw.slidingLableClrList[1][0]]), 
+                    # f'{comp1} red w': np.average([values for index, values in ARRDataAlgoCol1.items() if index in split_ARR_draw.slidingLableClrList[2][0]]), 
+                    # f'{comp1} grey w': np.average([values for index, values in ARRDataAlgoCol1.items() if index in split_ARR_draw.slidingLableClrList[3][0]]), 
+                    # f'{comp1} brown w': np.average([values for index, values in ARRDataAlgoCol1.items() if index in split_ARR_draw.slidingLableClrList[4][0]]), 
+                    # f'{comp1} white w': np.average([values for index, values in ARRDataAlgoCol1.items() if index in split_ARR_draw.slidingLableClrList[5][0]]), 
+                    # =====不同顏色滑動視窗的平均ARR
+                    # [f'{comp1} highest ARR diff GNQTS/Traditional', ARRDataCol1[0] - ARRDataCol2[0]],  # GNQTS跟傳統最高ARR差
+                    # f'{comp1} GNQTS win rate': len([i for i, j in zip(ARRDataAlgoCol1.sort_index(), ARRDataAlgoCol2.sort_index()) if i >= j]) / len(ARRDataAlgoCol1) * 100,  # GNQTS贏過傳統的勝率
+                    # f'{comp1} GNQTS B&H ranking': str(dfCol1.index.get_loc('B&H') + 1),  # B&H在GNQTS的排名
+                    # f'{comp1} Traditional B&H ranking': str(dfCol2.index.get_loc('B&H') + 1),  # B&H在傳統的排名
+                    # f'{comp1} GNQTS positive ARR window': len([i for i in ARRDataAlgoCol1 if i >= 0]),  # GNQTS ARR為正的數量
+                    # f'{comp1} Traditional positive ARR window': len([i for i in ARRDataAlgoCol2 if i >= 0]),  # 傳統ARR為正的數量
                     
-                    # f'{comp1} GNQTS win rate': len([i for i, j in zip(IRRDataAlgoCol1.sort_index(), IRRDataAlgoCol2.sort_index()) if i >= j]) / len(IRRDataAlgoCol1) * 100, 
-                    # f'{comp1} GNQTS B&H ranking': str(dfCol1.index.get_loc('B&H') + 1),
-                    # f'{comp1} Traditional B&H ranking': str(dfCol2.index.get_loc('B&H') + 1), 
-                    # f'{comp1} GNQTS positive IRR window': len([i for i in IRRDataAlgoCol1 if i >= 0]), 
-                    # f'{comp1} Traditional positive IRR window': len([i for i in IRRDataAlgoCol2 if i >= 0]), 
-                    
-                    # [f'{comp1} highest IRR diff GNQTS/B&H', IRRDataCol1[0] - self.df.at['B&H', self.df.columns[col1]]], 
-                    # [f'{comp1} highest IRR diff Traditional/B&H', IRRDataCol2[0] - self.df.at['B&H', self.df.columns[col2]]], 
-                    # f'{comp1} GNQTS "Y" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if w[0] == 'Y']), 
-                    # f'{comp1} GNQTS "HQM" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']), 
-                    # f'{comp1} GNQTS "DW" avg IRR': np.average([IRR for w, IRR in zip(self.df.index, dfCol1) if 'W' in w or 'D' in w]), 
+                    # [f'{comp1} highest ARR diff GNQTS/B&H', ARRDataCol1[0] - self.df.at['B&H', self.df.columns[col1]]],  # GNQTS跟B&H最高ARR差距
+                    # [f'{comp1} highest ARR diff Traditional/B&H', ARRDataCol2[0] - self.df.at['B&H', self.df.columns[col2]]],  # 傳統跟B&H最高ARR差距
+                    # f'{comp1} GNQTS "Y" avg ARR': np.average([ARR for w, ARR in zip(self.df.index, dfCol1) if w[0] == 'Y']),  # GNQTS滑動視窗為Y以上的平均ARR
+                    # f'{comp1} GNQTS "HQM" avg ARR': np.average([ARR for w, ARR in zip(self.df.index, dfCol1) if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']),  # GNQTS HQM滑動視窗平均ARR
+                    # f'{comp1} GNQTS "DW" avg ARR': np.average([ARR for w, ARR in zip(self.df.index, dfCol1) if 'W' in w or 'D' in w]),  GNQTS DW滑動視窗平均ARR
                 }
                 self.dataColLen = len(data)
-            else:
-                IRRDataTradCol2 = self.IRRData[self.df.columns[col2 + 1]]
+            else:  # 主指標跟其他指標比較
+                ARRDataTradCol2 = self.ARRData[self.df.columns[col2 + 1]]
                 data = {
-                    f'GNQTS win {comp1}/{comp2}': len([i for i, j in zip(IRRDataAlgoCol1.sort_index(), IRRDataAlgoCol2.sort_index()) if i >= j]) / len(IRRDataAlgoCol1) * 100, 
-                    f'Traditional win {comp1}/{comp2}': len([i for i, j in zip(IRRDataTradCol1.sort_index(), IRRDataTradCol2.sort_index()) if i >= j]) / len(IRRDataTradCol1) * 100, 
-                    # f'highest IRR diff of GNQTS {comp1}/{comp2}': IRRDataCol1[0] - IRRDataCol2[0],
-                    # f'highest IRR diff of Traditional {comp1}/{comp2}': max(self.IRRData[self.df.columns[col1 + 1]]) - max(IRRDataTradCol2),
-                    # f'GNQTS highest IRR gain {comp1}/{comp2} ': (IRRDataAlgoCol1[0] - IRRDataAlgoCol2[0]) / IRRDataAlgoCol2[0] * 100, 
-                    # f'GNQTS avg IRR gain {comp1}/{comp2}': (np.average(IRRDataAlgoCol1) - np.average(IRRDataAlgoCol2)) / np.average(IRRDataAlgoCol2) * 100,
-                    # f'Traditional highest IRR gain {comp1}/{comp2} ': (IRRDataTradCol1[0] - IRRDataTradCol2[0]) / IRRDataTradCol2[0] * 100, 
-                    # f'Traditional avg IRR gain {comp1}/{comp2}': (np.average(IRRDataTradCol1) - np.average(IRRDataTradCol2)) / np.average(IRRDataTradCol2) * 100,
+                    f'GNQTS win {comp1}/{comp2}': len([i for i, j in zip(ARRDataAlgoCol1.sort_index(), ARRDataAlgoCol2.sort_index()) if i >= j]) / len(ARRDataAlgoCol1) * 100,  # 主指標的GNQTS跟副指標的GNQTS比較勝率
+                    f'Traditional win {comp1}/{comp2}': len([i for i, j in zip(ARRDataTradCol1.sort_index(), ARRDataTradCol2.sort_index()) if i >= j]) / len(ARRDataTradCol1) * 100,  # 主指標的傳統跟副指標的GNQTS比較勝率
+                    # f'highest ARR diff of GNQTS {comp1}/{comp2}': ARRDataCol1[0] - ARRDataCol2[0],  # 主指標副指標GNQTS最高ARR差
+                    # f'highest ARR diff of Traditional {comp1}/{comp2}': max(self.ARRData[self.df.columns[col1 + 1]]) - max(ARRDataTradCol2),  # 主指標副指標傳統最高ARR差
+                    # f'GNQTS highest ARR gain {comp1}/{comp2} ': (ARRDataAlgoCol1[0] - ARRDataAlgoCol2[0]) / ARRDataAlgoCol2[0] * 100,  # 主指標比副指標GNQTS最高ARR增加百分比
+                    # f'GNQTS avg ARR gain {comp1}/{comp2}': (np.average(ARRDataAlgoCol1) - np.average(ARRDataAlgoCol2)) / np.average(ARRDataAlgoCol2) * 100,  # 主指標比副指標GNQTS平均ARR增加百分比
+                    # f'Traditional highest ARR gain {comp1}/{comp2} ': (ARRDataTradCol1[0] - ARRDataTradCol2[0]) / ARRDataTradCol2[0] * 100,  # 主指標比副指標傳統最高ARR增加百分比
+                    # f'Traditional avg ARR gain {comp1}/{comp2}': (np.average(ARRDataTradCol1) - np.average(ARRDataTradCol2)) / np.average(ARRDataTradCol2) * 100,  # # 主指標比副指標傳統平均ARR增加百分比
                 }
-                # if len(self.IRRData) > 3:
+                # if len(self.ARRData) > 3:
                 #     for techName in self.techNames:
                 #         data.update({techName: 1})
                 self.frontLen = len(data)
                 backData = {
-                    # 訓練期才用
-                    # f'GNQTS "Y" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1, col2) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y'])),
-                    # f'GNQTS "H" "Q" "M" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1, col2) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M'])),
-                    # f'GNQTS "D" "W" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1, col2) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)])),
+                    # =====訓練期才用
+                    # f'GNQTS "Y" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1, col2) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y'])),  # GNQTS主指標Y視窗對副指標Y視窗的勝率
+                    # f'GNQTS "H" "Q" "M" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1, col2) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M'])),  # GNQTS主指標HQM視窗對副指標HQM視窗的勝率
+                    # f'GNQTS "D" "W" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1, col2) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)])),  # GNQTS主指標DW視窗對副指標DW視窗的勝率
                     
-                    # f'Traditional "Y" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y'])),
-                    # f'Traditional "H" "Q" "M" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M'])),
-                    # f'Traditional "D" "W" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)])),
+                    # f'Traditional "Y" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and w[0] == 'Y'])) + '/' + str(len([w for w in self.df.index if w[0] == 'Y'])),  # 傳統主指標Y視窗對副指標Y視窗的勝率
+                    # f'Traditional "H" "Q" "M" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')])) + '/' + str(len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M'])),  # 傳統主指標HQM視窗對副指標HQM視窗的勝率
+                    # f'Traditional "D" "W" win {comp1}/{comp2}': str(len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and ('W' in w or 'D' in w)])) + '/' + str(len([w for w in self.df.index if ('W' in w or 'D' in w)])),  # 傳統主指標DW視窗對副指標DW視窗的勝率
                     
-                    # f'GNQTS "Y" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1, col2) and w[0] == 'Y']) / len([w for w in self.df.index if w[0] == 'Y']) * 100,
-                    # f'GNQTS "H" "Q" "M" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1, col2) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')]) / len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']) * 100,
-                    # f'GNQTS "D" "W" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1, col2) and ('W' in w or 'D' in w)]) / len([w for w in self.df.index if ('W' in w or 'D' in w)]) * 100,
+                    # f'GNQTS "Y" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1, col2) and w[0] == 'Y']) / len([w for w in self.df.index if w[0] == 'Y']) * 100,  # GNQTS主指標Y視窗對副指標Y視窗的勝率百分比
+                    # f'GNQTS "H" "Q" "M" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1, col2) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')]) / len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']) * 100,  # GNQTS主指標HQM視窗對副指標HQM視窗的勝率百分比
+                    # f'GNQTS "D" "W" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1, col2) and ('W' in w or 'D' in w)]) / len([w for w in self.df.index if ('W' in w or 'D' in w)]) * 100,  # GNQTS主指標DW視窗對副指標DW視窗的勝率百分比
                     
-                    # f'Traditional "Y" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and w[0] == 'Y']) / len([w for w in self.df.index if w[0] == 'Y']) * 100,
-                    # f'Traditional "H" "Q" "M" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')]) / len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']) * 100,
-                    # f'Traditional "D" "W" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and ('W' in w or 'D' in w)]) / len([w for w in self.df.index if ('W' in w or 'D' in w)]) * 100,
-                    # 訓練期才用
+                    # f'Traditional "Y" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and w[0] == 'Y']) / len([w for w in self.df.index if w[0] == 'Y']) * 100,  # 傳統主指標Y視窗對副指標Y視窗的勝率百分比
+                    # f'Traditional "H" "Q" "M" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and (w[0] == 'H' or w[0] == 'Q' or w[0] == 'M')]) / len([w for w in self.df.index if w[0] == 'H' or w[0] == 'Q' or w[0] == 'M']) * 100,  # 傳統主指標HQM視窗對副指標HQM視窗的勝率百分比
+                    # f'Traditional "D" "W" win {comp1}/{comp2}': len([w for w in self.df.index if self.compare(w, col1 + 1, col2 + 1) and ('W' in w or 'D' in w)]) / len([w for w in self.df.index if ('W' in w or 'D' in w)]) * 100,  # 傳統主指標DW視窗對副指標DW視窗的勝率百分比
+                    # =====訓練期才用
                 }
                 self.backLen = len(backData)
                 for elem in backData.items():
@@ -376,7 +355,7 @@ class split_IRR_draw:
             return self.df.at[window, self.df.columns[col1]] >= self.df.at[window, self.df.columns[col2]]
         
         def set_grid(self, fig):
-            gridNum = (lambda x: 24 if x == 1 else 25)(split_IRR_draw.seperateTable)
+            gridNum = (lambda x: 24 if x == 1 else 25)(split_ARR_draw.seperateTable)
             if self.techNum == 1:
                 hspace = -0.9
             elif self.techNum == 2:
@@ -384,7 +363,7 @@ class split_IRR_draw:
             elif self.techNum == 3:
                 hspace = -0.25
             
-            if split_IRR_draw.seperateTable:
+            if split_ARR_draw.seperateTable:
                 gs = fig.add_gridspec(gridNum, 1)
             else:
                 gs = fig.add_gridspec(
@@ -401,9 +380,9 @@ class split_IRR_draw:
         def start_draw_tables(self, fig, gs):
             # 設定top table
             self.draw_tables(fig, gs)
-            if split_IRR_draw.seperateTable:
-                # fig.suptitle(self.company + " " + split_IRR_draw.trainOrTest + ' ' + ' '.join(self.titleTechNames) + ' compare table', 
-                    # fontsize=split_IRR_draw.allFontSize + 8)
+            if split_ARR_draw.seperateTable:
+                # fig.suptitle(self.company + " " + split_ARR_draw.trainOrTest + ' ' + ' '.join(self.titleTechNames) + ' compare table', 
+                    # fontsize=split_ARR_draw.allFontSize + 8)
                 fig.suptitle(' ')
                 fig.savefig(self.company + '_table'  + '.png', dpi=fig.dpi, bbox_inches='tight')
                 plt.clf()
@@ -483,12 +462,12 @@ class split_IRR_draw:
         
         def draw_bar(self, fig, gs, gridNum):
             # 設定每個bar的顏色及bar的最終寬度
-            colorDict = dict(zip(self.df.columns, split_IRR_draw.barColorSet))
+            colorDict = dict(zip(self.df.columns, split_ARR_draw.barColorSet))
             if len(self.df.columns) < 3:
-                split_IRR_draw.totalBarWidth = 0.5
+                split_ARR_draw.totalBarWidth = 0.5
             
             # 設定要畫幾個子圖
-            if split_IRR_draw.reorder:
+            if split_ARR_draw.reorder:
                 figCnt = 1
             else:
                 # figCnt = (lambda x: 2 if x < 5 else 3)(len(self.df.columns))
@@ -518,16 +497,16 @@ class split_IRR_draw:
                 barAxes.append(barAx)
                 
                 # 分割需要畫的df出來
-                if split_IRR_draw.reorder and "window num" not in self.df.columns:
+                if split_ARR_draw.reorder and "window num" not in self.df.columns:
                     subDf = self.df.iloc[dfCuttedIndex[splitIndex]:dfCuttedIndex[splitIndex + 1] - 1, [0]]
-                elif split_IRR_draw.reorder and "window num" in self.df.columns:
+                elif split_ARR_draw.reorder and "window num" in self.df.columns:
                     subDf = self.df.iloc[dfCuttedIndex[splitIndex]:dfCuttedIndex[splitIndex + 1] - 1, :-1]
                 else:
                     subDf = self.df.iloc[dfCuttedIndex[splitIndex]:dfCuttedIndex[splitIndex + 1]]
                 
                 plot = subDf.plot.bar(
                     ax=barAx, 
-                    width=split_IRR_draw.totalBarWidth, 
+                    width=split_ARR_draw.totalBarWidth, 
                     rot=0, 
                     color=colorDict, 
                     edgecolor='black', 
@@ -537,9 +516,9 @@ class split_IRR_draw:
                 
                 # 找出B&H位置，將B&H的bar變成紅色
                 BHIndex = [i for i, x in enumerate(subDf.index) if x == 'B&H']
-                if not len(BHIndex) and not split_IRR_draw.reorder:
+                if not len(BHIndex) and not split_ARR_draw.reorder:
                     axIndexForLegned = splitIndex
-                elif split_IRR_draw.reorder:
+                elif split_ARR_draw.reorder:
                     axIndexForLegned = 0
                 if len(BHIndex):
                     BHIndex = BHIndex[0]
@@ -547,29 +526,29 @@ class split_IRR_draw:
                         if barIndex == 0:
                             singleBarWidth = barContainer[BHIndex].get_width()
                             barX = ((barContainer[BHIndex].get_x() + (barContainer[BHIndex].get_x() + (len(subDf.columns) * singleBarWidth))) - singleBarWidth) / 2
-                        barContainer[BHIndex].set_color(split_IRR_draw.BHColor)
+                        barContainer[BHIndex].set_color(split_ARR_draw.BHColor)
                         barContainer[BHIndex].set_x(barX)
                         barContainer[BHIndex].set_edgecolor('black')
                 
                 # 如果是train，變更每個滑動視窗的B&H顏色
-                if split_IRR_draw.trainOrTest == 'train' and not split_IRR_draw.reorder:
+                if split_ARR_draw.trainOrTest == 'train' and not split_ARR_draw.reorder:
                     for singleBar in plot.containers[-1]:
-                        singleBar.set_color(split_IRR_draw.BHColor)
+                        singleBar.set_color(split_ARR_draw.BHColor)
                         singleBar.set_edgecolor('black')
                 
                 # 設定其他屬性
                 barAx.grid(axis='y')
                 barAx.yaxis.set_major_formatter(mtick.PercentFormatter())  #把座標變成%
                 # barAx.locator_params(axis='y', nbins=10)
-                barAx.set_xticklabels(subDf.index, rotation=(lambda x: 90 if x else 45)(split_IRR_draw.reorder))
+                barAx.set_xticklabels(subDf.index, rotation=(lambda x: 90 if x else 45)(split_ARR_draw.reorder))
                 barAx.set(xlabel='', ylabel='')
-                barAx.tick_params(axis='x', labelsize=split_IRR_draw.allFontSize + 6)  #設定xlabel ylabel字形大小
+                barAx.tick_params(axis='x', labelsize=split_ARR_draw.allFontSize + 6)  #設定xlabel ylabel字形大小
                 barAx.tick_params(axis='y', labelsize=10)
                 
                 # 設定lable顏色
                 for cellText in barAx.get_xticklabels():
                     txt = cellText.get_text()
-                    for slideGroup in split_IRR_draw.slidingLableClrList:
+                    for slideGroup in split_ARR_draw.slidingLableClrList:
                         if txt in slideGroup[0]:
                             plt.setp(cellText, bbox=dict(boxstyle='round, pad=0.15', edgecolor='none', alpha=1, facecolor=slideGroup[1]))
                             break
@@ -584,28 +563,28 @@ class split_IRR_draw:
                 bbox_to_anchor=(1, 1.05), 
                 fancybox=True, shadow=False, 
                 ncol=len(self.df.columns), 
-                fontsize=split_IRR_draw.allFontSize)
+                fontsize=split_ARR_draw.allFontSize)
             
-            figTitle = self.company + (lambda x: ' reorder ' if x else ' ')(split_IRR_draw.reorder) + split_IRR_draw.trainOrTest + ' ' +  ' '.join(self.titleTechNames)
+            figTitle = self.company + (lambda x: ' reorder ' if x else ' ')(split_ARR_draw.reorder) + split_ARR_draw.trainOrTest + ' ' +  ' '.join(self.titleTechNames)
             if "window num" in self.df.columns:
-                figTitle += ' highest IRR appearance'
+                figTitle += ' highest ARR appearance'
             else:
-                figTitle += ' IRR rank'
+                figTitle += ' ARR rank'
             
             fig.suptitle(figTitle, 
                          ha='left', 
                          x=0.025, 
                          y=(lambda tableObjSize: 1.07 if tableObjSize > 1 else 1.03)(len(self.tablePlotObjs)), 
-                         fontsize=split_IRR_draw.allFontSize)
+                         fontsize=split_ARR_draw.allFontSize)
             # fig.subplots_adjust(hspace=1)
             
-            figName = self.company + (lambda x: '_reorder' if x else '')(split_IRR_draw.reorder)
+            figName = self.company + (lambda x: '_reorder' if x else '')(split_ARR_draw.reorder)
             if "window num" in self.df.columns:
-                    figName += '_highest_IRR_appearence.png'
-            elif split_IRR_draw.seperateTable:
-                figName += '_all_IRR_no_table.png'
+                    figName += '_highest_ARR_appearence.png'
+            elif split_ARR_draw.seperateTable:
+                figName += '_all_ARR_no_table.png'
             else:
-                figName += '_all_IRR.png'
+                figName += '_all_ARR.png'
             fig.savefig(figName, dpi=fig.dpi, bbox_inches='tight')
             plt.clf()
         
@@ -627,16 +606,16 @@ csv=[
         "windowRank_train_SMA_Tradition", 
     ]
 
-x = split_IRR_draw(IRRFileName='train_IRR_name_sorted_tech_highest_IRR_apearance',  # 若是compare類型，reorder要true，且csv內最多三個指標，超過放不下
-                   splitIRRFile=True, 
-                   drawBar=True, 
-                   drawTable=False, 
-                   seperateTable=True, 
-                   reorder=False, 
-                   setCompany='all')
+x = split_ARR_draw(ARRFileName='train_ARR_name_sorted_tech_highest_ARR_apearance',  # 若是compare類型，reorder要true，且csv內最多三個指標，超過放不下
+                   splitARRFile=True,  # True: 讀進的ARR file重新切割
+                   drawBar=True,  # True: 畫bar
+                   drawTable=False,  # True: bar圖加畫table
+                   seperateTable=True,  # True: table會另外生成一個png
+                   reorder=False,  # 根據reorderList重新排序滑動視窗
+                   setCompany='all')  # all全部公司，或是特定幾間公司('AAPL,AXP,WBA')
 
-# x = split_IRR_draw(IRRFileName=csv, 
-#                 splitIRRFile=True, 
+# x = split_ARR_draw(ARRFileName=csv,  # 畫windowRank
+#                 splitARRFile=True, 
 #                 drawBar=False, 
 #                 drawTable=False, 
 #                 seperateTable=True, 

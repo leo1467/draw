@@ -11,7 +11,7 @@ class draw_hold_period:
     allFontSize = 15
     companiesTradeInfo = dict()
     
-    def __init__(self, expFolder, resultFolder, tech, fundLV, bestHold, isTrain, isTradition, delFile, setCompany):
+    def __init__(self, expFolder, resultFolder, tech, bestHold, fundLV, isTrain, isTradition, delFile, setCompany):
         self.tech = tech
         self.drawBestHold = bestHold
         self.algoOrTrad = (lambda x: 'Tradition' if x == True else '')(isTradition)
@@ -30,10 +30,11 @@ class draw_hold_period:
             self.allCompay = setCompany
         else:
             self.allCompay = [dir for dir in os.listdir() if os.path.isdir(dir)]
-        if fundLV == True:
-            self.holdPath = [i + f'/{self.trainOrTest + self.algoOrTrad}Hold/' for i in self.allCompay]
-        else:
+        
+        if bestHold:
             self.holdPath = [i + f'/{self.trainOrTest + self.algoOrTrad}BestHold/' for i in self.allCompay]
+        elif fundLV:
+            self.holdPath = [i + f'/{self.trainOrTest + self.algoOrTrad}Hold/' for i in self.allCompay]
         
         self.fig = draw_hold_period.fig
         gridNum = 24
@@ -58,7 +59,7 @@ class draw_hold_period:
                     if fundLV == True:
                         self.draw_fundLv(file)
                     else :
-                        if not isTrain or self.check_symmetric(file):
+                        if not isTrain or self.check_symmetric(file):  # 訓練期的持有區間只能畫對稱的滑動視窗，所以檢查滑動視窗是否對稱
                             self.process_file_and_draw(file)
             for i in range(2):
                 os.chdir('../')
@@ -66,10 +67,14 @@ class draw_hold_period:
     
     def draw_fundLv(self, file):
         df = pd.read_csv(file, index_col=0, usecols=[0, 7, 8])
-        if df[df.columns[0]].iloc[-1] < df[df.columns[1]].iloc[-1] or df[df.columns[0]].iloc[-1] < 10000000:
+        
+        # =====可篩選想要畫出的資金水位的條件
+        if df[df.columns[0]].iloc[-1] < df[df.columns[1]].iloc[-1] or df[df.columns[0]].iloc[-1] < 10000000:  # 如果測試期最後一天B&H高或是沒賺錢的就不畫
             return
-        # if len([i for i, j in zip(df[df.columns[0]], df[df.columns[1]]) if i > j]) < len(df) * 0.5:
+        # if len([i for i, j in zip(df[df.columns[0]], df[df.columns[1]]) if i > j]) < len(df) * 0.5:  # 如果滑動視窗資金水位在測試期中沒有高過B&H的天數一半就不畫
         #     return
+        # =====可增加畫出的資金水位的條件
+        
         print(file)
         ax = self.fig.add_subplot(self.gs[:, :])
         ax.plot(df.index, df[df.columns[0]], label=df.columns[0], color='lightgray', linewidth=4)
@@ -103,7 +108,7 @@ class draw_hold_period:
         plt.savefig(fileTitle + '.png', dpi=draw_hold_period.fig.dpi, bbox_inches='tight')
         plt.clf()
 
-    def check_symmetric(self, file):
+    def check_symmetric(self, file):  # 訓練期的持有區間只能畫對稱的滑動視窗，所以檢查滑動視窗是否對稱
         window = file.split('_')[-2]
         if not window[0].isnumeric:
             if window[-1] == '#':
@@ -142,7 +147,7 @@ class draw_hold_period:
                 self.draw_table(tableDf)
                 self.draw_hold(file, df, newDf, yearIndexes, yearIndex, tradeInfo)
     
-    def record_tradInfo(self, newDf):
+    def record_tradInfo(self, newDf):  # 記錄交易資訊
         tradeInfo = dict()
         
         buyX = [i for i in newDf.index if not pd.isna(newDf.at[i, 'buy'])]
@@ -180,10 +185,10 @@ class draw_hold_period:
         buyY = tradeInfo['buy'].copy()
         sellY = tradeInfo['sell'].copy()
         
-        if len(tradeInfo['buy']) and len(tradeInfo['sell']) and tradeInfo['buy'].index[0] > tradeInfo['sell'].index[0]: #去年買今年賣,插入去年買buyY的尾巴
+        if len(tradeInfo['buy']) and len(tradeInfo['sell']) and tradeInfo['buy'].index[0] > tradeInfo['sell'].index[0]: # 去年買今年賣，插入去年買buyY的尾巴
             buyY = pd.concat([self.lastBuyY, buyY])
         
-        if len(tradeInfo['buy']) and len(tradeInfo['sell']) and tradeInfo['buy'].index[-1] > tradeInfo['sell'].index[-1] or len(tradeInfo['buy']) == 1 and len(tradeInfo['sell']) == 0: #今年買明年賣,記錄今年buyY的尾巴
+        if len(tradeInfo['buy']) and len(tradeInfo['sell']) and tradeInfo['buy'].index[-1] > tradeInfo['sell'].index[-1] or len(tradeInfo['buy']) == 1 and len(tradeInfo['sell']) == 0: # 今年買明年賣，記錄今年buyY的尾巴
             self.lastBuyY = pd.Series({tradeInfo['buy'].index[-1]:tradeInfo['buy'].values[-1]})
         
         tradeNum = len(sellY)
@@ -198,9 +203,9 @@ class draw_hold_period:
             stockNum = floor(profit / float(i))
             profit = profit - stockNum * float(i)
             profit += stockNum * float(j)
-        IRR = pow(profit / 10000000, 1 / len(newDf))
-        IRR = round((pow(IRR, 251.7) - 1) * 100, 2)
-        cellData.update({'IRR': str(IRR) + '%'})
+        ARR = pow(profit / 10000000, 1 / len(newDf))
+        ARR = round((pow(ARR, 251.7) - 1) * 100, 2)
+        cellData.update({'IRR': str(ARR) + '%'})
         
         tableDf = pd.DataFrame([cellData])
         
@@ -227,12 +232,12 @@ class draw_hold_period:
         ax.plot(newDf.index, newDf['hold 1'], label='Hold', color='darkorange', linewidth=4)
         ax.plot(newDf.index, newDf['hold 2'], color='darkorange', linewidth=4)
         
-        # 不知道為什麼會有warning(跟下面的功能一樣)
+        # 不知道為什麼會有warning(畫點)
         # ax.scatter(newDf.index, newDf['buy'], label='buy', color='black', s=40, zorder=10)
         # ax.scatter(newDf.index, newDf['sell date'], label='sell date', color='lime', s=40, zorder=10)
         # ax.scatter(newDf.index, newDf['sell'], label='sell', color='yellow', s=40, zorder=10)
         
-        # 打開可以畫點
+        # 也是畫點
         # if yearIndex != len(yearIndexes) - 1:
         #     for index in tradeInfo.index[:-1]:
         #         ax.scatter(tradeInfo[index].index, tradeInfo[index].values, 
@@ -308,9 +313,13 @@ x = draw_hold_period(
     expFolder='exp_result', 
     resultFolder='result_2021', 
     tech='SMA_RSI_3', 
-    fundLV=False, 
     bestHold=True, 
+    fundLV=False, 
     isTrain=False, 
     isTradition=False, 
-    delFile=[False, ''], 
-    setCompany='all')
+    delFile=[False, ''],  # 刪除畫的圖或csv用，False不執行，True且string內放副檔名代表要刪除該副檔名的檔案
+    setCompany='all')  # all全部公司，或是特定幾間公司('AAPL,AXP,WBA')
+
+# bestHold == True and fundLV == True: 畫最好滑動視窗的資金水位
+# bestHold == True and fundLV == False: 畫最好滑動視窗的持有區間
+# bestHold == False and fundLV == True: 畫所有滑動視窗的資金水位
